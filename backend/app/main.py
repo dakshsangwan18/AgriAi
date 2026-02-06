@@ -83,7 +83,7 @@ CORS_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     # Production frontend URL
-    "https://affectionate-blessing-production-f13d.up.railway.app",
+    "https://agri-ai-eight-nu.vercel.app",
 ]
 
 app.add_middleware(
