@@ -1,10 +1,3 @@
-"""Add OAuth and login tracking fields
-
-Revision ID: 002
-Revises: 001
-Create Date: 2026-02-07 14:00:00.000000
-
-"""
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa

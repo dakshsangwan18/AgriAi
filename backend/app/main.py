@@ -117,12 +117,6 @@ async def agri_ai_exception_handler(request: Request, exc: AgriAIException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    """
-    Handle unexpected exceptions with error tracking.
-    
-    Logs full traceback for debugging but returns generic message to user.
-    This prevents exposing internal implementation details.
-    """
     from app.core.request_id_middleware import get_request_id
     
     # Log full traceback for debugging

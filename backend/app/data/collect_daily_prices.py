@@ -1,11 +1,3 @@
-"""
-Daily Price Data Collection Script
-Run this daily (via cron/scheduler) to build up historical data from data.gov.in API
-
-Usage:
-    python -m app.data.collect_daily_prices
-"""
-
 import sys
 import logging
 from datetime import datetime
@@ -30,10 +22,6 @@ CROPS_TO_COLLECT = [
 ]
 
 def collect_daily_data():
-    """
-    Fetch today's market prices from data.gov.in API and store in database
-    Over time, this builds up real historical data for accurate predictions
-    """
     logger.info("="*60)
     logger.info(f" DAILY PRICE COLLECTION - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     logger.info("="*60)

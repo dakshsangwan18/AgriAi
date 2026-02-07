@@ -1,8 +1,3 @@
-"""
-Production-grade environment variable validation
-Fails fast on startup if critical configuration is missing
-"""
-
 import os
 import sys
 from typing import Dict, List, Optional

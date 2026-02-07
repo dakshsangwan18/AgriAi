@@ -11,29 +11,26 @@ load_dotenv()
 # Get database URL from environment or use SQLite fallback
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "sqlite:///./agri_ai.db"  # SQLite fallback for easy development
+    "sqlite:///./agri_ai.db"
 )
 
-# Production-grade connection pooling configuration
 is_sqlite = "sqlite" in DATABASE_URL
 
 if is_sqlite:
-    # SQLite configuration
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False},
-        echo=False  # Set to True for SQL debugging
+        echo=False
     )
 else:
-    # PostgreSQL/MySQL production configuration with connection pooling
     engine = create_engine(
         DATABASE_URL,
         poolclass=QueuePool,
-        pool_size=10,              # Base connections (optimized from 20)
-        max_overflow=20,           # Additional connections if pool exhausted (increased)
-        pool_timeout=30,           # Timeout waiting for connection (seconds)
-        pool_recycle=3600,         # Recycle connections after 1 hour
-        pool_pre_ping=True,        # Verify connections before using
+        pool_size=10,
+        max_overflow=20,
+        pool_timeout=30,
+        pool_recycle=3600,
+        pool_pre_ping=True,
         echo=False
     )
     

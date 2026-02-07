@@ -32,18 +32,6 @@ def get_db_session_no_commit() -> Generator[Session, None, None]:
 
 
 class DatabaseSessionManager:
-    """
-    Advanced session manager with manual control for complex transactions
-    
-    Usage:
-        manager = DatabaseSessionManager()
-        with manager.session() as db:
-            # Do work
-            if condition:
-                manager.commit()
-            else:
-                manager.rollback()
-    """
     
     def __init__(self):
         self._session: Session = None

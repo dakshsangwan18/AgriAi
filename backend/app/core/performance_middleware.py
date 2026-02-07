@@ -1,10 +1,3 @@
-"""
-Performance monitoring middleware.
-
-Tracks request duration, logs slow requests, and adds performance
-headers to responses for monitoring and debugging.
-"""
-
 from time import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -14,17 +7,7 @@ from app.core.request_id_middleware import get_request_id
 
 
 class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware to monitor request performance.
     
-    Features:
-    - Tracks request duration
-    - Logs slow requests (>1 second)
-    - Adds X-Response-Time header to all responses
-    - Tracks performance metrics
-    """
-    
-    # Class-level metrics storage (use Redis in production)
     metrics = {
         "total_requests": 0,
         "slow_requests": 0,

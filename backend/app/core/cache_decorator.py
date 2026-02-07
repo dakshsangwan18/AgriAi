@@ -83,15 +83,6 @@ def cached(
 
 
 async def invalidate_cache_pattern(pattern: str):
-    """
-    Invalidate all cache keys matching a pattern.
-    
-    Args:
-        pattern: Redis key pattern (e.g., "weather:*", "prices:wheat:*")
-    
-    Example:
-        await invalidate_cache_pattern("prices:wheat:*")
-    """
     try:
         deleted = await cache_manager.delete_pattern(pattern)
         logger.info(

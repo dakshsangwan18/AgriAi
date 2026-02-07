@@ -149,16 +149,6 @@ class CacheManager:
             return False
     
     def invalidate_pattern(self, namespace: str, pattern: str = "*") -> int:
-        """
-        Invalidate all keys matching pattern in namespace
-        
-        Args:
-            namespace: Category
-            pattern: Glob pattern (default: all keys)
-            
-        Returns:
-            Number of keys deleted
-        """
         if not self.is_available():
             return 0
         
@@ -246,27 +236,12 @@ def cache_result(
     ttl: int = 3600,
     key_builder: Optional[Callable] = None
 ):
-    """
-    Decorator to cache function results
-    
-    Usage:
-        @cache_result("weather", ttl=3600)
-        async def get_weather(city: str):
-            return await fetch_weather_api(city)
-    
-    Args:
-        namespace: Cache namespace
-        ttl: Time to live in seconds
-        key_builder: Custom function to build cache key from args
-    """
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            # Build cache key
             if key_builder:
                 cache_key = key_builder(*args, **kwargs)
             else:
-                # Default: hash function args
                 key_parts = [str(arg) for arg in args]
                 key_parts.extend([f"{k}={v}" for k, v in sorted(kwargs.items())])
                 key_str = ":".join(key_parts)

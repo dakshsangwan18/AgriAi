@@ -18,19 +18,6 @@ def log_admin_action(
     request: Optional[Request] = None,
     status: str = "success"
 ):
-    """
-    Log an admin action to the audit trail.
-    
-    Args:
-        db: Database session
-        admin: Admin user who performed the action
-        action: Action performed (e.g., 'USER_DELETED', 'CACHE_CLEARED')
-        resource_type: Type of resource affected (e.g., 'user', 'cache')
-        resource_id: ID of the affected resource
-        details: Additional details as dictionary
-        request: FastAPI request object for IP and user agent
-        status: 'success' or 'failed'
-    """
     try:
         ip_address = None
         user_agent = None
