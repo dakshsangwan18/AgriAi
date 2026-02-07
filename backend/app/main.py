@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -62,6 +63,12 @@ logger.info(" Request ID middleware enabled for distributed tracing")
 app.add_middleware(PerformanceMonitoringMiddleware)
 logger.info("[DATA] Performance monitoring middleware enabled")
 
+# Proxy headers middleware (MUST be before SessionMiddleware)
+# Trust only Render's proxy to prevent header spoofing
+app.add_middleware(
+    ProxyHeadersMiddleware,
+    trusted_hosts=["agriai-ecxt.onrender.com"]
+)
 
 # IMPORTANT: SessionMiddleware must be added BEFORE CORSMiddleware for OAuth to work
 app.add_middleware(
@@ -69,8 +76,10 @@ app.add_middleware(
     secret_key=settings.SECRET_KEY,  # Use same secret as JWT
     session_cookie="oauth_session",
     max_age=600,  # OAuth session expires in 10 minutes
-    same_site="lax",
-    https_only=settings.ENVIRONMENT == "production"  # Enable HTTPS in production
+    same_site="none",  # Required for cross-domain OAuth (Vercel ↔ Render)
+    secure=True,  # Explicit secure flag required with same_site="none"
+    https_only=True,  # Always use secure cookies in production (HTTPS)
+    httponly=True  # Prevent XSS attacks
 )
 
 # CORS - Production-grade configuration with explicit origins
