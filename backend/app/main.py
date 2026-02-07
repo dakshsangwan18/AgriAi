@@ -61,9 +61,7 @@ app.add_middleware(
     session_cookie="oauth_session",
     max_age=600,
     same_site="none",
-    secure=True,
-    https_only=True,
-    httponly=True
+    https_only=True
 )
 
 CORS_ORIGINS = [
