@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -55,11 +54,6 @@ logger.info(" Request ID middleware enabled for distributed tracing")
 
 app.add_middleware(PerformanceMonitoringMiddleware)
 logger.info("[DATA] Performance monitoring middleware enabled")
-
-app.add_middleware(
-    ProxyHeadersMiddleware,
-    trusted_hosts=["agriai-ecxt.onrender.com"]
-)
 
 app.add_middleware(
     SessionMiddleware, 
