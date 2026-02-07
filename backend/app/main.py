@@ -32,72 +32,59 @@ validate_environment()
 # Load environment variables from .env file
 load_dotenv()
 
-# Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="Agriculture AI Platform API - Autonomous Agent")
 
-# Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Error tracking middleware (add first to catch all errors)
 app.add_middleware(ErrorTrackingMiddleware)
 
-# Security Middlewares (add first for maximum protection)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(InputValidationMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 
-# HTTPS Enforcement for Production
 if settings.ENVIRONMENT == "production":
     from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
     app.add_middleware(HTTPSRedirectMiddleware)
     logger.info("[SECURE] HTTPS enforcement enabled - all HTTP requests will redirect to HTTPS")
 
-# Request ID Middleware for distributed tracing
 app.add_middleware(RequestIDMiddleware)
 logger.info(" Request ID middleware enabled for distributed tracing")
 
-# Performance Monitoring Middleware
 app.add_middleware(PerformanceMonitoringMiddleware)
 logger.info("[DATA] Performance monitoring middleware enabled")
 
-# Proxy headers middleware (MUST be before SessionMiddleware)
-# Trust only Render's proxy to prevent header spoofing
 app.add_middleware(
     ProxyHeadersMiddleware,
     trusted_hosts=["agriai-ecxt.onrender.com"]
 )
 
-# IMPORTANT: SessionMiddleware must be added BEFORE CORSMiddleware for OAuth to work
 app.add_middleware(
     SessionMiddleware, 
-    secret_key=settings.SECRET_KEY,  # Use same secret as JWT
+    secret_key=settings.SECRET_KEY,
     session_cookie="oauth_session",
-    max_age=600,  # OAuth session expires in 10 minutes
-    same_site="none",  # Required for cross-domain OAuth (Vercel ↔ Render)
-    secure=True,  # Explicit secure flag required with same_site="none"
-    https_only=True,  # Always use secure cookies in production (HTTPS)
-    httponly=True  # Prevent XSS attacks
+    max_age=600,
+    same_site="none",
+    secure=True,
+    https_only=True,
+    httponly=True
 )
 
-# CORS - Production-grade configuration with explicit origins
 CORS_ORIGINS = [
-    # Development origins
     "http://localhost",
     "http://127.0.0.1",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    # Production frontend URL
     "https://agri-ai-eight-nu.vercel.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,  # Explicit origins (no wildcards for security)
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,  # Required for authenticated requests
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
@@ -151,7 +138,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
         }
     )
     
-    # Don't expose internal errors to users in production
     if settings.ENVIRONMENT == "production":
         message = "An unexpected error occurred. Please try again later."
     else:

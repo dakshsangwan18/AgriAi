@@ -31,16 +31,13 @@ from app.core.logging_config import logger
 
 router = APIRouter()
 
-# Rate limiter - disabled in testing to allow tests to run freely
 limiter = Limiter(
     key_func=get_remote_address,
-    enabled=settings.ENVIRONMENT != "testing"  # Disable in test mode
+    enabled=settings.ENVIRONMENT != "testing"
 )
 
-# OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# OAuth configuration for Google
 config = Config(environ={
     'GOOGLE_CLIENT_ID': settings.GOOGLE_CLIENT_ID or '',
     'GOOGLE_CLIENT_SECRET': settings.GOOGLE_CLIENT_SECRET or '',
@@ -52,7 +49,7 @@ oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile',
-        'timeout': 30.0  # Increase timeout for Docker environments
+        'timeout': 30.0
     }
 )
 
@@ -115,7 +112,6 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
             detail="Email already registered"
         )
     
-    # Create new user
     hashed_password = get_password_hash(validated_password)
     new_user = User(
         email=user_data.email,
@@ -144,16 +140,12 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
 
 
 @router.post("/login", response_model=Token)
-@limiter.limit("50/hour")  # Increased for testing - reduce in production
+@limiter.limit("50/hour")
 async def login(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db)
 ):
-    """
-    Email/password login with production-grade security tracking
-    """
-    # Find user by email (username field in OAuth2 form)
     user = db.query(User).filter(User.email == form_data.username).first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -171,18 +163,16 @@ async def login(
             detail="Inactive user"
         )
     
-    # Track login activity (production-grade security)
     client_ip = request.client.host if request.client else "unknown"
     user.last_login = datetime.now(timezone.utc)
     user.last_login_ip = client_ip
     user.login_count = (user.login_count or 0) + 1
-    if not user.login_method:  # Set default for existing users
+    if not user.login_method:
         user.login_method = "email"
     
     db.commit()
     db.refresh(user)
     
-    # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email, "user_id": user.id},
@@ -205,7 +195,6 @@ async def update_profile(
     current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db)
 ):
-    # Update only provided fields
     if update_data.full_name is not None:
         current_user.full_name = update_data.full_name
     if update_data.phone is not None:
@@ -244,10 +233,8 @@ async def forgot_password(
     if not user:
         return {"message": "If that email exists, a password reset link has been sent."}
     
-    # Generate secure reset token
     reset_token = secrets.token_urlsafe(32)
     
-    # Token expires in 1 hour
     user.reset_token = reset_token
     user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
     
@@ -298,10 +285,8 @@ async def reset_password(
             detail="Invalid or expired reset token"
         )
     
-    # Update password
     user.hashed_password = get_password_hash(reset_request.new_password)
     
-    # Clear reset token
     user.reset_token = None
     user.reset_token_expires = None
     
@@ -311,12 +296,8 @@ async def reset_password(
 
 
 @router.get("/google/login")
-@limiter.limit("10/minute")  # Rate limit: 10 Google login attempts per minute per IP
+@limiter.limit("10/minute")
 async def google_login(request: Request):
-    """
-    Initiate Google OAuth login flow.
-    Rate limited to prevent abuse and excessive redirects.
-    """
     try:
         redirect_uri = settings.GOOGLE_REDIRECT_URI
         logger.info(f"[OAUTH] Initiating Google login flow - redirect_uri: {redirect_uri}")
@@ -330,12 +311,8 @@ async def google_login(request: Request):
 
 
 @router.get("/google/callback")
-@limiter.limit("20/minute")  # Rate limit: 20 OAuth callbacks per minute per IP
+@limiter.limit("20/minute")
 async def google_callback(request: Request, db: Session = Depends(get_db)):
-    """
-    Handle Google OAuth callback after user authentication.
-    Creates or updates user account and returns JWT token via frontend redirect.
-    """
     try:
         logger.info("[OAUTH] Processing Google OAuth callback")
         token = await oauth.google.authorize_access_token(request)
@@ -349,34 +326,28 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         
         email = user_info.get('email')
         name = user_info.get('name')
-        google_id = user_info.get('sub')  # Google's unique user ID
-        picture = user_info.get('picture')  # Profile picture URL
+        google_id = user_info.get('sub')
+        picture = user_info.get('picture')
         
-        # Get client IP for security tracking
         client_ip = request.client.host if request.client else "unknown"
         
-        # Check if user exists
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            # Create new user with OAuth defaults
             logger.info(f"[OAUTH] Creating new user account for Google user: {email}")
             user = User(
                 email=email,
                 full_name=name,
-                hashed_password=get_password_hash(secrets.token_urlsafe(32)),  # Random secure password
+                hashed_password=get_password_hash(secrets.token_urlsafe(32)),
                 is_active=True,
                 preferred_language="en",
                 notification_enabled=True,
-                # OAuth fields
                 oauth_provider="google",
                 oauth_id=google_id,
                 profile_picture_url=picture,
                 login_method="google",
-                # Email is verified by Google
                 email_verified=True,
                 email_verified_at=datetime.now(timezone.utc),
-                # Login tracking
                 last_login=datetime.now(timezone.utc),
                 last_login_ip=client_ip,
                 login_count=1
@@ -386,10 +357,8 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.refresh(user)
             logger.info(f"[OAUTH] Successfully created user account: {email} (login_count=1)")
         else:
-            # Update existing user - track login activity
             logger.info(f"[OAUTH] User {email} already exists, updating login tracking")
             
-            # Update OAuth info if not set
             if not user.oauth_provider:
                 user.oauth_provider = "google"
             if not user.oauth_id:
@@ -397,19 +366,16 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             if not user.profile_picture_url and picture:
                 user.profile_picture_url = picture
             
-            # Mark email as verified (Google verified it)
             if not user.email_verified:
                 user.email_verified = True
                 user.email_verified_at = datetime.now(timezone.utc)
                 logger.info(f"[OAUTH] Marked email as verified for {email}")
             
-            # Update defaults if missing
             if user.preferred_language is None:
                 user.preferred_language = "en"
             if user.notification_enabled is None:
                 user.notification_enabled = True
             
-            # Track login activity (production-grade security)
             user.last_login = datetime.now(timezone.utc)
             user.last_login_ip = client_ip
             user.login_count = (user.login_count or 0) + 1
@@ -419,7 +385,6 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.refresh(user)
             logger.info(f"[OAUTH] Updated login tracking: {email} (login_count={user.login_count}, ip={client_ip})")
         
-        # Create JWT token
         access_token = create_access_token(
             data={"sub": user.email, "user_id": user.id}
         )
@@ -430,17 +395,14 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url=frontend_url)
         
     except Exception as e:
-        # Production-grade error handling with detailed logging
         import traceback
         error_type = type(e).__name__
         error_msg = str(e)
         
-        # Log detailed error for monitoring and debugging
         logger.error(f"[OAUTH] Google OAuth callback failed - Error type: {error_type}")
         logger.error(f"[OAUTH] Error message: {error_msg}")
         logger.error(f"[OAUTH] Stack trace:\n{traceback.format_exc()}")
         
-        # Redirect to frontend with error (never expose internal errors to users)
         frontend_url = f"{settings.FRONTEND_URL}/login?error=google_auth_failed"
         logger.warning(f"[OAUTH] Redirecting user to frontend login page with error flag")
         return RedirectResponse(url=frontend_url)
