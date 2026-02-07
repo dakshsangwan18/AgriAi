@@ -35,10 +35,8 @@ def cached(
                             "cache_key": cache_key
                         }
                     )
-                    # Deserialize and return
                     return json.loads(cached_value)
                 
-                # Cache miss - execute function
                 logger.debug(
                     f"Cache MISS: {cache_key}",
                     extra={

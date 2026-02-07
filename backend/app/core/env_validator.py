@@ -12,7 +12,6 @@ class EnvValidationError(Exception):
 
 class EnvironmentValidator:
     
-    # Critical variables - app won't start without these
     REQUIRED_VARS = {
         'SECRET_KEY': {
             'description': 'JWT secret key for authentication',
@@ -29,7 +28,6 @@ class EnvironmentValidator:
         },
     }
     
-    # Important but optional - app works with degraded functionality
     OPTIONAL_VARS = {
         'OPENWEATHER_API_KEY': {
             'description': 'OpenWeather API for real weather data',

@@ -17,16 +17,12 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         if not request_id:
             request_id = str(uuid.uuid4())
         
-        # Store in context variable for access throughout request lifecycle
         request_id_context.set(request_id)
         
-        # Add to request state for easy access
         request.state.request_id = request_id
         
-        # Process the request
         response: Response = await call_next(request)
         
-        # Add request ID to response headers
         response.headers["X-Request-ID"] = request_id
         
         return response

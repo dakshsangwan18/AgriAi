@@ -23,7 +23,6 @@ def log_admin_action(
         user_agent = None
         
         if request:
-            # Get real IP from X-Forwarded-For or X-Real-IP headers (for proxy/load balancer)
             ip_address = (
                 request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or
                 request.headers.get("X-Real-IP") or
@@ -38,7 +37,7 @@ def log_admin_action(
             resource_id=str(resource_id) if resource_id else None,
             details=json.dumps(details) if details else None,
             ip_address=ip_address,
-            user_agent=user_agent[:255] if user_agent else None,  # Truncate if too long
+            user_agent=user_agent[:255] if user_agent else None,
             status=status
         )
         
@@ -46,6 +45,5 @@ def log_admin_action(
         db.commit()
         
     except Exception as e:
-        # Don't fail the request if audit logging fails
         logger.error("Failed to log audit entry", exc_info=e, extra={"admin_id": admin.id, "action": action})
         db.rollback()

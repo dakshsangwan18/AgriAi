@@ -15,20 +15,15 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
     }
     
     async def dispatch(self, request: Request, call_next):
-        # Start timer
         start_time = time()
         
-        # Process request
         response: Response = await call_next(request)
         
-        # Calculate duration
         duration = time() - start_time
         
-        # Update metrics
         self.metrics["total_requests"] += 1
         self.metrics["total_response_time"] += duration
         
-        # Log slow requests
         if duration > 1.0:
             self.metrics["slow_requests"] += 1
             logger.warning(
@@ -42,7 +37,6 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
                 }
             )
         
-        # Add performance header
         response.headers["X-Response-Time"] = f"{duration:.3f}s"
         
         return response

@@ -65,7 +65,6 @@ class CacheManager:
             if value is None:
                 return None
             
-            # Deserialize JSON
             result = json.loads(value.decode('utf-8'))
             
             logger.info(
@@ -97,10 +96,8 @@ class CacheManager:
         try:
             cache_key = self._make_key(namespace, key)
             
-            # Serialize to JSON
             serialized = json.dumps(value, default=str)
             
-            # Set with expiration
             self._client.setex(
                 cache_key,
                 timedelta(seconds=ttl),
@@ -247,15 +244,12 @@ def cache_result(
                 key_str = ":".join(key_parts)
                 cache_key = hashlib.md5(key_str.encode()).hexdigest()
             
-            # Try to get from cache
             cached = cache_manager.get(namespace, cache_key)
             if cached is not None:
                 return cached
             
-            # Execute function
             result = await func(*args, **kwargs)
             
-            # Cache result
             cache_manager.set(namespace, cache_key, result, ttl)
             
             return result
@@ -264,5 +258,4 @@ def cache_result(
     return decorator
 
 
-# Global cache instance
 cache_manager = CacheManager()
