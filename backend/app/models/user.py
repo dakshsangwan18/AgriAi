@@ -35,6 +35,17 @@ class User(Base):
     reset_token = Column(String, nullable=True)
     reset_token_expires = Column(DateTime(timezone=True), nullable=True)
     
+    # OAuth and Login Tracking (Production-grade security)
+    oauth_provider = Column(String, nullable=True)  # google, github, microsoft
+    oauth_id = Column(String, nullable=True, index=True)  # Provider's user ID
+    profile_picture_url = Column(String, nullable=True)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    last_login_ip = Column(String, nullable=True)
+    login_count = Column(Integer, default=0)
+    login_method = Column(String, default="email")  # email, google, github
+    email_verified = Column(Boolean, default=False)  # Separate from is_verified for granular control
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

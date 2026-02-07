@@ -150,6 +150,9 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db)
 ):
+    """
+    Email/password login with production-grade security tracking
+    """
     # Find user by email (username field in OAuth2 form)
     user = db.query(User).filter(User.email == form_data.username).first()
     
@@ -168,6 +171,17 @@ async def login(
             detail="Inactive user"
         )
     
+    # Track login activity (production-grade security)
+    client_ip = request.client.host if request.client else "unknown"
+    user.last_login = datetime.now(timezone.utc)
+    user.last_login_ip = client_ip
+    user.login_count = (user.login_count or 0) + 1
+    if not user.login_method:  # Set default for existing users
+        user.login_method = "email"
+    
+    db.commit()
+    db.refresh(user)
+    
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -175,7 +189,7 @@ async def login(
         expires_delta=access_token_expires
     )
     
-    logger.info("User logged in successfully", user_id=user.id, email=user.email)
+    logger.info(f"User logged in successfully: {user.email} (login_count={user.login_count}, ip={client_ip})")
     
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -335,34 +349,75 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         
         email = user_info.get('email')
         name = user_info.get('name')
+        google_id = user_info.get('sub')  # Google's unique user ID
+        picture = user_info.get('picture')  # Profile picture URL
+        
+        # Get client IP for security tracking
+        client_ip = request.client.host if request.client else "unknown"
         
         # Check if user exists
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            # Create new user with default profile values
+            # Create new user with OAuth defaults
             logger.info(f"[OAUTH] Creating new user account for Google user: {email}")
             user = User(
                 email=email,
                 full_name=name,
-                hashed_password=get_password_hash(secrets.token_urlsafe(32)),  # Random password
+                hashed_password=get_password_hash(secrets.token_urlsafe(32)),  # Random secure password
                 is_active=True,
-                preferred_language="en",  # Default language
-                notification_enabled=True  # Enable notifications by default
+                preferred_language="en",
+                notification_enabled=True,
+                # OAuth fields
+                oauth_provider="google",
+                oauth_id=google_id,
+                profile_picture_url=picture,
+                login_method="google",
+                # Email is verified by Google
+                email_verified=True,
+                email_verified_at=datetime.now(timezone.utc),
+                # Login tracking
+                last_login=datetime.now(timezone.utc),
+                last_login_ip=client_ip,
+                login_count=1
             )
             db.add(user)
             db.commit()
             db.refresh(user)
-            logger.info(f"[OAUTH] Successfully created user account: {email}")
+            logger.info(f"[OAUTH] Successfully created user account: {email} (login_count=1)")
         else:
-            # Update existing user with default values if they're missing
-            logger.info(f"[OAUTH] User {email} already exists, updating defaults if needed")
+            # Update existing user - track login activity
+            logger.info(f"[OAUTH] User {email} already exists, updating login tracking")
+            
+            # Update OAuth info if not set
+            if not user.oauth_provider:
+                user.oauth_provider = "google"
+            if not user.oauth_id:
+                user.oauth_id = google_id
+            if not user.profile_picture_url and picture:
+                user.profile_picture_url = picture
+            
+            # Mark email as verified (Google verified it)
+            if not user.email_verified:
+                user.email_verified = True
+                user.email_verified_at = datetime.now(timezone.utc)
+                logger.info(f"[OAUTH] Marked email as verified for {email}")
+            
+            # Update defaults if missing
             if user.preferred_language is None:
                 user.preferred_language = "en"
             if user.notification_enabled is None:
                 user.notification_enabled = True
+            
+            # Track login activity (production-grade security)
+            user.last_login = datetime.now(timezone.utc)
+            user.last_login_ip = client_ip
+            user.login_count = (user.login_count or 0) + 1
+            user.login_method = "google"
+            
             db.commit()
             db.refresh(user)
+            logger.info(f"[OAUTH] Updated login tracking: {email} (login_count={user.login_count}, ip={client_ip})")
         
         # Create JWT token
         access_token = create_access_token(
