@@ -297,12 +297,18 @@ async def reset_password(
 
 
 @router.get("/google/login")
+@limiter.limit("10/minute")  # Rate limit: 10 Google login attempts per minute per IP
 async def google_login(request: Request):
+    """
+    Initiate Google OAuth login flow.
+    Rate limited to prevent abuse and excessive redirects.
+    """
     try:
         redirect_uri = settings.GOOGLE_REDIRECT_URI
+        logger.info(f"[OAUTH] Initiating Google login flow - redirect_uri: {redirect_uri}")
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
-        logger.error(f"Google OAuth error: {str(e)}")
+        logger.error(f"[OAUTH] Google login error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google login is temporarily unavailable. Please use email/password login or try again later."
@@ -310,8 +316,14 @@ async def google_login(request: Request):
 
 
 @router.get("/google/callback")
+@limiter.limit("20/minute")  # Rate limit: 20 OAuth callbacks per minute per IP
 async def google_callback(request: Request, db: Session = Depends(get_db)):
+    """
+    Handle Google OAuth callback after user authentication.
+    Creates or updates user account and returns JWT token via frontend redirect.
+    """
     try:
+        logger.info("[OAUTH] Processing Google OAuth callback")
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
         
@@ -329,6 +341,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         
         if not user:
             # Create new user with default profile values
+            logger.info(f"[OAUTH] Creating new user account for Google user: {email}")
             user = User(
                 email=email,
                 full_name=name,
@@ -340,8 +353,10 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.add(user)
             db.commit()
             db.refresh(user)
+            logger.info(f"[OAUTH] Successfully created user account: {email}")
         else:
             # Update existing user with default values if they're missing
+            logger.info(f"[OAUTH] User {email} already exists, updating defaults if needed")
             if user.preferred_language is None:
                 user.preferred_language = "en"
             if user.notification_enabled is None:
@@ -356,15 +371,22 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         
         # Redirect to frontend with token
         frontend_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={access_token}"
+        logger.info(f"[OAUTH] Successfully authenticated user {email}, redirecting to frontend")
         return RedirectResponse(url=frontend_url)
         
     except Exception as e:
-        # Log the error for debugging
+        # Production-grade error handling with detailed logging
         import traceback
-        logger.error(f"Google OAuth callback error: {str(e)}")
-        logger.error(traceback.format_exc())
+        error_type = type(e).__name__
+        error_msg = str(e)
         
-        # Redirect to frontend with error
+        # Log detailed error for monitoring and debugging
+        logger.error(f"[OAUTH] Google OAuth callback failed - Error type: {error_type}")
+        logger.error(f"[OAUTH] Error message: {error_msg}")
+        logger.error(f"[OAUTH] Stack trace:\n{traceback.format_exc()}")
+        
+        # Redirect to frontend with error (never expose internal errors to users)
         frontend_url = f"{settings.FRONTEND_URL}/login?error=google_auth_failed"
+        logger.warning(f"[OAUTH] Redirecting user to frontend login page with error flag")
         return RedirectResponse(url=frontend_url)
 
