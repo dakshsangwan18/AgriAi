@@ -135,6 +135,31 @@ To generate a secure secret key:
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
+# Security Hardening Notes
+
+Secrets and rotation:
+- Never commit real secrets. If any secret was exposed, rotate it immediately.
+- Keys to rotate if exposed: `DATABASE_URL`, `SECRET_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENWEATHER_API_KEY`, `DATA_GOV_IN_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SENDGRID_API_KEY`, `TWILIO_AUTH_TOKEN`.
+- Use [backend/.env.example](backend/.env.example) as the only committed reference.
+
+Environment separation:
+- Set `ENVIRONMENT` to `development`, `staging`, or `production`.
+- For production, define `CORS_ORIGINS` as a comma-separated allowlist (e.g., `https://app.example.com,https://admin.example.com`).
+- Set `FRONTEND_URL` for OAuth redirects.
+
+RBAC and admin access:
+- Admin and agent operational endpoints require a superuser account.
+- Create a superuser via [backend/scripts/create_superuser.py](backend/scripts/create_superuser.py):
+
+```
+SUPERUSER_EMAIL=admin@example.com SUPERUSER_PASSWORD=strong-password \
+	python backend/scripts/create_superuser.py
+```
+
+Logging and artifacts:
+- Runtime logs are written under `backend/logs/` and are gitignored.
+- Do not store secrets in logs or build artifacts.
+
 # Database Notes
 
 When using Docker, PostgreSQL is managed automatically by Docker Compose.
