@@ -115,6 +115,9 @@ docker-compose -f docker-compose.prod.yml -f docker-compose.proxy.yml up -d
 ```
 
 If you enable the proxy profile, place certs in `nginx/ssl/` and update [nginx/nginx.conf](nginx/nginx.conf) with your TLS settings.
+Default paths:
+- `nginx/ssl/fullchain.pem`
+- `nginx/ssl/privkey.pem`
 
 # Configuration
 
