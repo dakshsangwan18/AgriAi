@@ -1,8 +1,9 @@
 
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from slowapi import Limiter
@@ -13,38 +14,12 @@ from app.models.user import User
 from app.models.agent_analysis import AgentAnalysis
 from app.models.prediction_history import PredictionHistory
 from app.models.audit_log import AuditLog
-from app.api.v1.endpoints.auth import get_current_user
+from app.api.v1.endpoints.auth import get_current_active_user
 from app.core.cache import cache_manager
 from app.core.audit import log_admin_action
 
-# Rate limiter for admin endpoints
-limiter = Limiter(key_func=get_remote_address)
-
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
-
-
-def log_admin_action(
-    db: Session,
-    admin_id: int,
-    action: str,
-    target_type: Optional[str] = None,
-    target_id: Optional[str] = None,
-    details: Optional[dict] = None,
-    request: Optional[Request] = None
-):
-    
-    audit_log = AuditLog(
-        admin_id=admin_id,
-        action=action,
-        target_type=target_type,
-        target_id=str(target_id) if target_id else None,
-        details=details,
-        ip_address=request.client.host if request else None,
-        user_agent=request.headers.get("user-agent") if request else None
-    )
-    db.add(audit_log)
-    db.commit()
 
 
 # Pydantic models
@@ -82,17 +57,18 @@ class AuditLogResponse(BaseModel):
     id: int
     admin_email: Optional[str]
     action: str
-    target_type: Optional[str]
-    target_id: Optional[str]
-    details: Optional[dict]
+    resource_type: Optional[str]
+    resource_id: Optional[str]
+    details: Optional[Any]
     ip_address: Optional[str]
+    status: Optional[str]
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-def verify_admin(current_user: User = Depends(get_current_user)):
+def verify_admin(current_user: User = Depends(get_current_active_user)):
     
     if not current_user.is_superuser:
         raise HTTPException(
@@ -116,7 +92,8 @@ async def get_platform_stats(
     # Active users (logged in last 30 days)
     thirty_days_ago = datetime.now() - timedelta(days=30)
     active_users = db.query(func.count(User.id)).filter(
-        User.is_active == True
+        User.is_active == True,
+        User.last_login >= thirty_days_ago,
     ).scalar()
     
     # Total agent analyses
@@ -380,56 +357,52 @@ async def clear_all_cache(
 async def get_audit_logs(
     request: Request,
     limit: int = Query(50, ge=1, le=500),
-    action_filter: Optional[str] = None,
-    db: Session = Depends(get_db),
-    admin: User = Depends(verify_admin)
-):
-    
-    query = db.query(AuditLog)
-    
-    if action_filter:
-        query = query.filter(AuditLog.action.ilike(f"%{action_filter}%"))
-    
-    logs = query.order_by(desc(AuditLog.created_at)).limit(limit).all()
-    
-    # Transform response
-    result = []
-    for log in logs:
-        admin_user = db.query(User).filter(User.id == log.admin_id).first()
-        result.append(AuditLogResponse(
-            id=log.id,
-            admin_email=admin_user.email if admin_user else None,
-            action=log.action,
-            target_type=log.target_type,
-            target_id=log.target_id,
-            details=log.details,
-            ip_address=log.ip_address,
-            created_at=log.created_at
-        ))
-    
-    return result
-
-
-@router.get("/audit-logs", response_model=List[AuditLogResponse])
-async def get_audit_logs(
-    limit: int = Query(50, ge=1, le=500),
     skip: int = Query(0, ge=0),
     action: Optional[str] = None,
     resource_type: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(verify_admin)
 ):
-    
-    query = db.query(AuditLog)
-    
-    # Filters
+    # Single JOIN avoids N+1 lookup of admin email per row
+    query = (
+        db.query(AuditLog, User.email.label("admin_email"))
+        .outerjoin(User, AuditLog.admin_id == User.id)
+    )
+
     if action:
         query = query.filter(AuditLog.action.ilike(f"%{action}%"))
     if resource_type:
         query = query.filter(AuditLog.resource_type == resource_type)
-    
-    # Paginate and sort by newest first
-    logs = query.order_by(desc(AuditLog.created_at)).offset(skip).limit(limit).all()
-    
-    return logs
+
+    rows = (
+        query.order_by(desc(AuditLog.created_at))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    result = []
+    for log, admin_email in rows:
+        parsed_details: Any = log.details
+        if isinstance(log.details, str):
+            try:
+                parsed_details = json.loads(log.details)
+            except (json.JSONDecodeError, TypeError):
+                parsed_details = log.details
+
+        result.append(
+            AuditLogResponse(
+                id=log.id,
+                admin_email=admin_email,
+                action=log.action,
+                resource_type=log.resource_type,
+                resource_id=log.resource_id,
+                details=parsed_details,
+                ip_address=log.ip_address,
+                status=log.status,
+                created_at=log.created_at,
+            )
+        )
+
+    return result
 

@@ -69,7 +69,7 @@ async def get_notifications(
         if notif.extra_data:
             try:
                 notif.extra_data = json.loads(notif.extra_data)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 notif.extra_data = None
     
     return notifications

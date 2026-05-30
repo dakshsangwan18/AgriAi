@@ -2,41 +2,65 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional
-from pydantic import BaseModel
+from typing import Annotated, Optional
+from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.services.agent_service import smart_agent
 from app.services.scheduler_service import scheduler_service
 from app.models.agent_analysis import AgentAnalysis
+from app.models.user import User
+from app.api.v1.endpoints.auth import get_current_active_user
+from app.core.logging_config import logger
 
 router = APIRouter()
 
 
 class AnalysisRequest(BaseModel):
-    crop: str
-    city: Optional[str] = "Delhi"
-    days: Optional[int] = 7  # Prediction period (7, 30, 90, 180 days)
+    crop: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-zA-Z_\- ]+$")
+    city: Optional[str] = Field("Delhi", min_length=1, max_length=100, pattern=r"^[a-zA-Z_\- ]+$")
+    days: Optional[int] = Field(7, ge=1, le=180)
+
+
+def require_admin(
+    current_user: Annotated[User, Depends(get_current_active_user)]
+) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return current_user
 
 
 @router.post("/analyze")
-async def analyze_crop(request: AnalysisRequest):
+async def analyze_crop(
+    request: AnalysisRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
     user_prefs = {
-        'risk_tolerance': 'medium'  # Can be stored in user model later
+        'risk_tolerance': 'medium'
     }
-    
-    analysis = smart_agent.analyze_crop(
-        crop=request.crop,
-        city=request.city,
-        user_preferences=user_prefs,
-        days_ahead=request.days
-    )
-    
+
+    try:
+        analysis = smart_agent.analyze_crop(
+            crop=request.crop,
+            city=request.city,
+            user_preferences=user_prefs,
+            days_ahead=request.days
+        )
+    except Exception as e:
+        logger.error(f"Analysis failed for user {current_user.id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to analyze crop")
+
+    if not isinstance(analysis, dict) or "decision" not in analysis:
+        raise HTTPException(status_code=500, detail="Analysis produced invalid result")
+
     return analysis
 
 
 @router.get("/status")
-async def agent_status(db: Session = Depends(get_db)):
+async def agent_status(
+    db: Session = Depends(get_db),
+    admin: Annotated[User, Depends(require_admin)]
+):
     # Get total analyses count
     total_analyses = db.query(func.count(AgentAnalysis.id)).scalar() or 0
     
@@ -60,7 +84,9 @@ async def agent_status(db: Session = Depends(get_db)):
 
 
 @router.post("/trigger-monitoring")
-async def trigger_monitoring():
+async def trigger_monitoring(
+    admin: Annotated[User, Depends(require_admin)]
+):
     scheduler_service.run_now('daily_monitoring')
     
     return {
@@ -70,7 +96,9 @@ async def trigger_monitoring():
 
 
 @router.get("/health")
-async def health_check():
+async def health_check(
+    admin: Annotated[User, Depends(require_admin)]
+):
     return {
         "agent": "healthy",
         "scheduler": "running" if scheduler_service.is_running else "stopped",
@@ -82,7 +110,8 @@ async def health_check():
 async def get_analysis_history(
     limit: int = 10,
     crop: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: Annotated[User, Depends(require_admin)]
 ):
     limit = min(limit, 100)  # Cap at 100
     

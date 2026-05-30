@@ -4,7 +4,6 @@ from redis.connection import ConnectionPool
 from typing import Optional, Any, Callable
 from functools import wraps
 import hashlib
-from datetime import timedelta
 from app.core.config import settings
 from app.core.logging_config import logger
 
@@ -100,7 +99,7 @@ class CacheManager:
             
             self._client.setex(
                 cache_key,
-                timedelta(seconds=ttl),
+                ttl,
                 serialized
             )
             

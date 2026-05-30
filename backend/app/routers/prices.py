@@ -9,40 +9,51 @@ from app.core.logging_config import logger
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
+
+def _validate_crop(crop: str) -> str:
+    crop_normalized = (crop or "").strip().lower()
+    supported = {c.lower() for c in PriceService.CROPS}
+    if crop_normalized not in supported:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported crop '{crop}'. Supported: {sorted(supported)}"
+        )
+    return crop_normalized
+
+
 @router.get("/predict")
 @limiter.limit("200/hour")  # Increased limit for price predictions
 async def predict_crop_prices(
     request: Request,
-    crop: str = Query(..., description="Crop name (wheat, rice, tomato, onion, potato, cotton, sugarcane)"),
+    crop: str = Query(..., description="Crop name (wheat, rice, tomato, onion, potato, cotton, sugarcane)", min_length=1, max_length=50, pattern=r"^[a-zA-Z_\- ]+$"),
     days: int = Query(30, description="Number of days to predict", ge=7, le=90)
 ):
-    
+
     try:
-        from app.services.price_service import PriceService
-        
+        crop = _validate_crop(crop)
         prediction_data = PriceService.predict_prices(crop, days)
-        
+
         if "error" in prediction_data:
             raise HTTPException(status_code=400, detail=prediction_data["error"])
-        
+
         return prediction_data
-    
+
     except HTTPException:
         raise
     except Exception as e:
-        from app.core.logging_config import logger
         logger.error("Price prediction error", exc_info=e, endpoint="/api/prices/predict")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal error during price prediction")
 
 @router.get("/historical")
 @limiter.limit("200/hour")
 async def get_historical_prices(
     request: Request,
-    crop: str = Query(..., description="Crop name"),
+    crop: str = Query(..., description="Crop name", min_length=1, max_length=50, pattern=r"^[a-zA-Z_\- ]+$"),
     days: int = Query(90, description="Number of days of history", ge=30, le=365)
 ):
-    
+
     try:
+        crop = _validate_crop(crop)
         # Get historical data from database (real + synthetic)
         historical_df = data_service.get_price_data(crop, days=days)
         
@@ -69,28 +80,35 @@ async def get_historical_prices(
             }
         }
     
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error("Historical prices error", exc_info=e, endpoint="/api/prices/historical")
+        raise HTTPException(status_code=500, detail="Internal error fetching historical prices")
 
 @router.get("/compare")
 @limiter.limit("200/hour")
 async def compare_markets(
     request: Request,
-    crop: str = Query(..., description="Crop name")
+    crop: str = Query(..., description="Crop name", min_length=1, max_length=50, pattern=r"^[a-zA-Z_\- ]+$")
 ):
-    
+
     try:
+        crop = _validate_crop(crop)
         comparison_data = PriceService.get_market_comparison(crop)
-        
+
         if "error" in comparison_data:
             raise HTTPException(status_code=400, detail=comparison_data["error"])
-        
+
         return comparison_data
-    
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error("Market comparison error", exc_info=e, endpoint="/api/prices/compare")
+        raise HTTPException(status_code=500, detail="Internal error fetching market comparison")
 
 @router.get("/crops")
 @limiter.limit("200/hour")  # Higher limit for simple list

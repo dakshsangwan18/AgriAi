@@ -53,7 +53,7 @@ class SchedulerService:
         logger.info("[OK] Production scheduler started - monitoring 24/7")
         logger.info("[DATA] Daily data collection: 6 PM IST")
         logger.info(" Daily analysis: 6 AM IST")
-        logger.info(" Price alerts: Every 6 hours")
+        logger.info(" Price alerts: Hourly (minute 0)")
     
     def stop(self):
         if self.scheduler.running:

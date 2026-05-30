@@ -57,24 +57,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Fetch current user on mount if token exists
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
     const fetchUser = async () => {
       if (token) {
         try {
           const response = await axios.get(`${API_BASE_URL}/v1/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
           });
-          setUser(response.data);
+          if (!cancelled) setUser(response.data);
         } catch (error) {
+          if (axios.isCancel(error)) return;
+          if (cancelled) return;
           logger.error("Failed to fetch user", { error });
-          // Token might be invalid, clear it
           localStorage.removeItem("token");
           setToken(null);
         }
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
-    fetchUser();
+    fetchUser().catch((error) => {
+      if (cancelled) return;
+      logger.error("Unexpected error during fetchUser", { error });
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [token]);
 
   const login = async (email: string, password: string) => {

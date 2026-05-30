@@ -1,3 +1,4 @@
+import asyncio
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -102,11 +103,14 @@ class EmailService:
             # Add HTML version
             part2 = MIMEText(html_content, 'html')
             msg.attach(part2)
-            # Send via SMTP
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-                server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
+
+            def _send_sync():
+                with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                    server.starttls()
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    server.send_message(msg)
+
+            await asyncio.to_thread(_send_sync)
             logger.info(f"[OK] Email sent to {to_email} via SMTP")
             return True
         except Exception as e:
@@ -133,114 +137,70 @@ class EmailService:
         user_name: Optional[str] = None
     ) -> bool:
         display_name = user_name or to_email.split('@')[0]
-        
+
         # HTML email template
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reset Your Password</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
-                <tr>
-                    <td align="center">
-                        <!-- Main Container -->
-                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
-                            <!-- Header -->
-                            <tr>
-                                <td style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
-                                    <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">
-                                         AgriAI
-                                    </h1>
-                                    <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">
-                                        Smart Farming Platform
-                                    </p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Content -->
-                            <tr>
-                                <td style="padding: 40px 30px;">
-                                    <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px; font-weight: 600;">
-                                        Reset Your Password
-                                    </h2>
-                                    
-                                    <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                        Hi {display_name},
-                                    </p>
-                                    
-                                    <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                        We received a request to reset your password. Click the button below to create a new password:
-                                    </p>
-                                    
-                                    <!-- CTA Button -->
-                                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                                        <tr>
-                                            <td align="center">
-                                                <a href="{reset_link}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
-                                                    Reset My Password
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    
-                                    <p style="margin: 20px 0; color: #4b5563; font-size: 14px; line-height: 1.6;">
-                                        Or copy and paste this link into your browser:
-                                    </p>
-                                    
-                                    <p style="margin: 0 0 20px 0; padding: 12px; background-color: #f3f4f6; border-radius: 6px; color: #6b7280; font-size: 13px; word-break: break-all;">
-                                        {reset_link}
-                                    </p>
-                                    
-                                    <div style="margin: 30px 0; padding: 16px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
-                                        <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-                                            ⏰ <strong>This link expires in 1 hour</strong> for security reasons.
-                                        </p>
-                                    </div>
-                                    
-                                    <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                                        If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
-                                    </p>
-                                </td>
-                            </tr>
-                            
-                            <!-- Footer -->
-                            <tr>
-                                <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-                                    <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
-                                        Need help? Contact us at <a href="mailto:support@agri-ai.com" style="color: #10b981; text-decoration: none;">support@agri-ai.com</a>
-                                    </p>
-                                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                                        © 2025 AgriAI Platform. All rights reserved.
-                                    </p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        AgriAI - Reset Your Password
-        
-        Hi {display_name},
-        
-        We received a request to reset your password. Click the link below to create a new password:
-        
-        {reset_link}
-        
-        This link expires in 1 hour for security reasons.
-        
-        If you didn't request this password reset, you can safely ignore this email.
-        
-        Need help? Contact us at support@agri-ai.com
-        
-        © 2025 AgriAI Platform
-        """
-        
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Your Password</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold;">AgriAI</h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px;">Smart Farming Platform</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px; font-weight: 600;">Reset Your Password</h2>
+                            <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">Hi {display_name},</p>
+                            <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">We received a request to reset your password. Click the button below to create a new password:</p>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{reset_link}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">Reset My Password</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 20px 0; color: #4b5563; font-size: 14px; line-height: 1.6;">Or copy and paste this link into your browser:</p>
+                            <p style="margin: 0 0 20px 0; padding: 12px; background-color: #f3f4f6; border-radius: 6px; color: #6b7280; font-size: 13px; word-break: break-all;">{reset_link}</p>
+                            <div style="margin: 30px 0; padding: 16px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+                                <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;"><strong>This link expires in 1 hour</strong> for security reasons.</p>
+                            </div>
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Need help? Contact us at <a href="mailto:support@agri-ai.com" style="color: #10b981; text-decoration: none;">support@agri-ai.com</a></p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">&copy; 2025 AgriAI Platform. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+        text_content = (
+            f"AgriAI - Reset Your Password\n\n"
+            f"Hi {display_name},\n\n"
+            f"We received a request to reset your password. Click the link below to create a new password:\n\n"
+            f"{reset_link}\n\n"
+            f"This link expires in 1 hour for security reasons.\n\n"
+            f"If you didn't request this password reset, you can safely ignore this email.\n\n"
+            f"Need help? Contact us at support@agri-ai.com\n\n"
+            f"(c) 2025 AgriAI Platform"
+        )
+
         return await self.send_email(
             to_email=to_email,
             subject="Reset Your AgriAI Password",
@@ -254,83 +214,73 @@ class EmailService:
         user_name: Optional[str] = None
     ) -> bool:
         display_name = user_name or to_email.split('@')[0]
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Welcome to AgriAI</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
-                <tr>
-                    <td align="center">
-                        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                            <tr>
-                                <td style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
-                                    <h1 style="margin: 0; color: #ffffff; font-size: 32px;"> Welcome to AgriAI!</h1>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 40px 30px;">
-                                    <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px;">Hi {display_name}! [BYE]</h2>
-                                    <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                        Welcome to AgriAI - your smart farming companion! We're excited to have you on board.
-                                    </p>
-                                    <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                        Here's what you can do with AgriAI:
-                                    </p>
-                                    <ul style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.8;">
-                                        <li>🤖 Get AI-powered farming insights</li>
-                                        <li>[WEATHER] Real-time weather monitoring</li>
-                                        <li> Crop price predictions</li>
-                                        <li>[DATA] Yield forecasting</li>
-                                        <li> 24/7 AI chatbot assistant</li>
-                                    </ul>
-                                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                                        <tr>
-                                            <td align="center">
-                                                <a href="{settings.FRONTEND_URL}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-                                                    Get Started
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-                                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">© 2025 AgriAI Platform</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        Welcome to AgriAI!
-        
-        Hi {display_name}!
-        
-        Welcome to AgriAI - your smart farming companion!
-        
-        Here's what you can do:
-        - Get AI-powered farming insights
-        - Real-time weather monitoring
-        - Crop price predictions
-        - Yield forecasting
-        - 24/7 AI chatbot assistant
-        
-        Get started: {settings.FRONTEND_URL}
-        
-        © 2025 AgriAI Platform
-        """
-        
+
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Welcome to AgriAI</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px;">Welcome to AgriAI!</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px;">Hi {display_name}!</h2>
+                            <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">Welcome to AgriAI - your smart farming companion! We're excited to have you on board.</p>
+                            <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">Here's what you can do with AgriAI:</p>
+                            <ul style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.8;">
+                                <li>Get AI-powered farming insights</li>
+                                <li>Real-time weather monitoring</li>
+                                <li>Crop price predictions</li>
+                                <li>Yield forecasting</li>
+                                <li>24/7 AI chatbot assistant</li>
+                            </ul>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{settings.FRONTEND_URL}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">Get Started</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">&copy; 2025 AgriAI Platform</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+        text_content = (
+            f"Welcome to AgriAI!\n\n"
+            f"Hi {display_name}!\n\n"
+            f"Welcome to AgriAI - your smart farming companion!\n\n"
+            f"Here's what you can do:\n"
+            f"- Get AI-powered farming insights\n"
+            f"- Real-time weather monitoring\n"
+            f"- Crop price predictions\n"
+            f"- Yield forecasting\n"
+            f"- 24/7 AI chatbot assistant\n\n"
+            f"Get started: {settings.FRONTEND_URL}\n\n"
+            f"(c) 2025 AgriAI Platform"
+        )
+
         return await self.send_email(
             to_email=to_email,
-            subject="Welcome to AgriAI! ",
+            subject="Welcome to AgriAI!",
             html_content=html_content,
             text_content=text_content
         )

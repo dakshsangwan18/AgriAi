@@ -24,7 +24,9 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.core.validators import validate_email, validate_password
+import asyncio
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from app.services.email_service import email_service
 from app.core.logging_config import logger
@@ -225,35 +227,35 @@ async def forgot_password(
     forgot_request: ForgotPasswordRequest,
     db: Session = Depends(get_db)
 ):
-    # Find user by email
+    # Constant-time handling to prevent email enumeration via timing side-channel
+    start_time = time.monotonic()
+    min_response_seconds = 1.0
+
     user = db.query(User).filter(User.email == forgot_request.email).first()
-    
-    # Always return success to prevent email enumeration attacks
-    # (Don't reveal if email exists or not)
-    if not user:
-        return {"message": "If that email exists, a password reset link has been sent."}
-    
-    reset_token = secrets.token_urlsafe(32)
-    
-    user.reset_token = reset_token
-    user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
-    
-    db.commit()
-    
-    # Send password reset email
-    reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
-    
-    try:
-        await email_service.send_password_reset_email(
-            to_email=user.email,
-            reset_link=reset_link,
-            user_name=user.full_name
-        )
-    except Exception as e:
-        # Log error but don't reveal to user
-        logger.error("Failed to send password reset email", exc_info=e, extra={"email": email_lower})
-        # Still return success to prevent email enumeration
-    
+
+    if user:
+        reset_token = secrets.token_urlsafe(32)
+        user.reset_token = reset_token
+        user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        db.commit()
+
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+
+        try:
+            await email_service.send_password_reset_email(
+                to_email=user.email,
+                reset_link=reset_link,
+                user_name=user.full_name
+            )
+        except Exception as e:
+            # Log but never reveal failure to caller
+            logger.error("Failed to send password reset email", exc_info=e, extra={"email": forgot_request.email})
+
+    # Pad response to a minimum duration so existence of account cannot be inferred
+    elapsed = time.monotonic() - start_time
+    if elapsed < min_response_seconds:
+        await asyncio.sleep(min_response_seconds - elapsed)
+
     return {"message": "If that email exists, a password reset link has been sent."}
 
 

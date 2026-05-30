@@ -393,12 +393,14 @@ export const notificationAPI = {
 export const chatbotAPI = {
   ask: async (
     message: string,
-    history: Array<{ role: string; content: string }> = []
+    history: Array<{ role: string; content: string }> = [],
+    signal?: AbortSignal
   ): Promise<{ response: string }> => {
-    const response = await apiClient.post("/chatbot/ask", {
-      message,
-      history,
-    });
+    const response = await apiClient.post(
+      "/chatbot/ask",
+      { message, history },
+      { signal }
+    );
     return response.data;
   },
 };

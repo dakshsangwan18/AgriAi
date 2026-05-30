@@ -152,12 +152,12 @@ async def get_weather_impact(
     city: str = Query(..., description="City name")
 ):
     try:
-        impact = weather_impact_service.get_weather_impact(city, crop)
-        
+        impact = await weather_impact_service.analyze_weather_impact(crop=crop, city=city)
+
         if "error" in impact:
             logger.warning(f"Weather impact error for {crop} in {city}: {impact['error']}")
             raise HTTPException(status_code=400, detail=impact["error"])
-        
+
         return impact
     except HTTPException:
         raise

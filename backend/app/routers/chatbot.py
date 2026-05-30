@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from app.services.chatbot_service import ChatbotService
+from app.services.chatbot_service import get_chatbot_service
 from typing import List, Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.core.logging_config import logger
 
 router = APIRouter()
-chatbot_service = ChatbotService()
+chatbot_service = get_chatbot_service()
 limiter = Limiter(key_func=get_remote_address)
 
 class ChatMessage(BaseModel):
@@ -23,15 +23,15 @@ class ChatResponse(BaseModel):
     timestamp: str
 
 @router.post("/ask", response_model=ChatResponse)
-@limiter.limit("10/minute")  # Reduced to stay under Gemini free tier limit
+@limiter.limit("10/minute")  # Reduced to stay under Groq free tier limit
 async def ask_question(request: Request, chat_request: ChatRequest):
-    
+
+    from datetime import datetime
+
+    if not chat_request.message or chat_request.message.strip() == "":
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
     try:
-        from datetime import datetime
-        
-        if not chat_request.message or chat_request.message.strip() == "":
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
-        
         # Get response from chatbot
         if chat_request.history and len(chat_request.history) > 0:
             # Use history for context
@@ -40,14 +40,17 @@ async def ask_question(request: Request, chat_request: ChatRequest):
         else:
             # Simple response without history
             response = chatbot_service.get_response(chat_request.message)
-        
+
         return {
             "response": response,
             "timestamp": datetime.now().isoformat()
         }
-    
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Chatbot /ask failed: {e}")
+        raise HTTPException(status_code=500, detail="Chatbot request failed")
 
 @router.get("/suggestions")
 @limiter.limit("100/hour")

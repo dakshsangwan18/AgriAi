@@ -1,13 +1,16 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
 from .config import settings
 
+logger = logging.getLogger(__name__)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(
-        plain_password.encode('utf-8'), 
+        plain_password.encode('utf-8'),
         hashed_password.encode('utf-8')
     )
 
@@ -34,4 +37,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError:
+        return None
+    except (ValueError, TypeError, AttributeError) as e:
+        logger.warning(f"Token decode failed with non-JWT exception: {type(e).__name__}: {e}")
         return None

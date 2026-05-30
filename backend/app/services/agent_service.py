@@ -122,7 +122,7 @@ class SmartCropAgent:
                     analysis_duration=elapsed
                 )
                 save_db.add(analysis_record)
-                # Auto-commits on success, auto-rolls back on error
+                save_db.flush()  # Assign primary key before we log it
                 logger.info(f" Analysis saved to database (ID: {analysis_record.id})")
                     
             # Format response to match frontend expectations
@@ -162,7 +162,7 @@ class SmartCropAgent:
         change_7d = ((prices[-1] - prices[-7]) / prices[-7]) * 100 if len(prices) >= 7 else 0
         
         # 30-day change
-        change_30d = ((prices[-1] - prices[0]) / prices[0]) * 100 if len(prices) >= 30 else 0
+        change_30d = ((prices[-1] - prices[-30]) / prices[-30]) * 100 if len(prices) >= 30 else 0
         
         # Volatility (standard deviation)
         volatility = (prices.std() / prices.mean()) * 100 if len(prices) > 1 else 0
@@ -241,21 +241,24 @@ Keep it practical and friendly. Use Rs. for prices."""
                 for crop in favorite_crops:
                     try:
                         analysis = self.analyze_crop(crop, city)
-                        
+                        decision = analysis.get('decision') or {}
+                        action = decision.get('action')
+                        confidence = decision.get('confidence', 0)
+
                         # Create alert if action needed
-                        if analysis['action'] in ['SELL_NOW', 'WAIT'] and analysis['confidence'] > 0.6:
+                        if action in ['SELL_NOW', 'WAIT'] and confidence > 0.6:
                             alert = {
                                 'user_id': user.id,
                                 'user_email': user.email,
                                 'crop': crop,
-                                'action': analysis['action'],
-                                'reasoning': analysis.get('llm_insights', analysis['reasoning'])[:500],
-                                'confidence': analysis['confidence'],
-                                'expected_price': analysis.get('expected_price'),
-                                'timestamp': analysis['timestamp']
+                                'action': action,
+                                'reasoning': (analysis.get('llm_insights') or decision.get('reason', ''))[:500],
+                                'confidence': confidence,
+                                'expected_price': decision.get('expected_price'),
+                                'timestamp': analysis.get('timestamp')
                             }
                             alerts.append(alert)
-                            logger.info(f" Alert created for {user.email}: {crop} - {analysis['action']}")
+                            logger.info(f" Alert created for {user.email}: {crop} - {action}")
                     except Exception as e:
                         logger.error(f"Error analyzing {crop} for {user.email}: {str(e)}")
                         continue

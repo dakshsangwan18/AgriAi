@@ -34,7 +34,8 @@ class DecisionEngine:
     PRICE_RISE_OPPORTUNITY = 10.0  # Sell if price rises >10%
     WEATHER_IMPACT_THRESHOLD = 0.3  # Rain probability > 30%
     TREND_STRENGTH_THRESHOLD = 0.6  # Confidence > 60%
-    
+    HISTORY_MAX_SIZE = 500  # Cap in-memory history to avoid unbounded growth
+
     def __init__(self):
         self.decision_history = []
     
@@ -83,7 +84,10 @@ class DecisionEngine:
             'crop': crop,
             'decision': decision
         })
-        
+        if len(self.decision_history) > self.HISTORY_MAX_SIZE:
+            # Trim oldest entries — keeps memory bounded in long-running process
+            self.decision_history = self.decision_history[-self.HISTORY_MAX_SIZE:]
+
         return decision
     
     def _analyze_price_predictions(

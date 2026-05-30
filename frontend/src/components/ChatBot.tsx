@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
 import { Send, Bot, User, Loader } from "lucide-react";
 import { chatbotAPI } from "../services/api";
 import { logger } from "../utils/logger";
@@ -27,6 +28,8 @@ const ChatBot = () => {
     "How to control aphids organically?",
   ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,6 +38,14 @@ const ChatBot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputMessage;
@@ -50,11 +61,18 @@ const ChatBot = () => {
     setInputMessage("");
     setLoading(true);
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await chatbotAPI.ask(
         textToSend,
-        messages.map((msg) => ({ role: msg.role, content: msg.content }))
+        messages.map((msg) => ({ role: msg.role, content: msg.content })),
+        controller.signal
       );
+
+      if (!isMountedRef.current) return;
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -65,6 +83,10 @@ const ChatBot = () => {
       // Limit messages to last 50 to prevent memory issues
       setMessages((prev) => [...prev, assistantMessage].slice(-50));
     } catch (error) {
+      if (axios.isCancel(error) || (error instanceof Error && error.name === "CanceledError")) {
+        return;
+      }
+      if (!isMountedRef.current) return;
       logger.error("Chatbot error", error);
       const errorMessage: Message = {
         role: "assistant",
@@ -74,7 +96,9 @@ const ChatBot = () => {
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

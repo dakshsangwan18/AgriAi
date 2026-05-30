@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
@@ -17,53 +18,52 @@ class AlertService:
         self.email_service = EmailService()
     
     async def check_all_alerts(self) -> dict:
-        db = SessionLocal()
         triggered_count = 0
         checked_count = 0
-        
+        db = SessionLocal()
         try:
             # Get all active alerts
             alerts = db.query(PriceAlert).filter(
                 PriceAlert.is_active == True
             ).all()
-            
+
             logger.info(f"Checking {len(alerts)} active price alerts")
-            
+
             for alert in alerts:
                 checked_count += 1
-                
+
                 # Skip if triggered recently (within 1 hour)
                 if alert.last_triggered_at and \
                    datetime.now(timezone.utc) - alert.last_triggered_at < timedelta(hours=1):
                     continue
-                
+
                 # Get current price
                 try:
                     current_price = await self._get_current_price(alert.crop, alert.city)
-                    
+
                     if current_price is None:
                         logger.warning(f"No price data for {alert.crop} in {alert.city}")
                         continue
-                    
+
                     # Check if alert should trigger
                     should_trigger, message = self._should_trigger_alert(alert, current_price)
-                    
+
                     if should_trigger:
                         await self._trigger_alert(alert, current_price, message, db)
                         triggered_count += 1
-                        
+
                 except Exception as e:
                     logger.error(f"Error checking alert {alert.id}: {e}")
                     continue
-            
+
             logger.info(f"Alert check complete: {triggered_count}/{checked_count} triggered")
-            
+
             return {
                 "checked": checked_count,
                 "triggered": triggered_count,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
-            
+
         finally:
             db.close()
     
@@ -148,7 +148,12 @@ class AlertService:
                 title=f" {alert.crop.upper()} Price Alert",
                 message=message,
                 priority='high' if abs(current_price - (alert.threshold_price or 0)) > 100 else 'normal',
-                extra_data=f'{{"crop": "{alert.crop}", "city": "{alert.city}", "current_price": {current_price}, "alert_type": "{alert.alert_type}"}}'
+                extra_data=json.dumps({
+                    "crop": alert.crop,
+                    "city": alert.city,
+                    "current_price": current_price,
+                    "alert_type": alert.alert_type,
+                })
             )
             db.add(notification)
             
