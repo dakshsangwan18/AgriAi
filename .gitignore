@@ -33,6 +33,9 @@ Thumbs.db
 logs/
 backend/logs/
 
+# TLS certs (optional nginx reverse proxy)
+nginx/ssl/
+
 # Environment Variables
 .env
 .env.local

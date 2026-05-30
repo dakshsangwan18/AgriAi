@@ -108,6 +108,14 @@ docker-compose -f docker-compose.prod.yml up -d
 The production setup disables hot reload and is intended to be used behind a reverse proxy with HTTPS enabled.
 TLS termination is not bundled in the compose file. Use your cloud load balancer or a dedicated reverse proxy.
 
+Optional: Nginx reverse proxy in Docker (HTTP/TLS termination)
+
+```
+docker-compose -f docker-compose.prod.yml -f docker-compose.proxy.yml up -d
+```
+
+If you enable the proxy profile, place certs in `nginx/ssl/` and update [nginx/nginx.conf](nginx/nginx.conf) with your TLS settings.
+
 # Configuration
 
 Create a `.env` file inside the backend directory.
