@@ -30,7 +30,10 @@ services:
     container_name: agri-ai-backend-prod
     restart: always
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: ${REDIS_URL:-}
+      CACHE_ENABLED: ${CACHE_ENABLED:-false}
       SECRET_KEY: ${SECRET_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
@@ -41,6 +44,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
       FRONTEND_URL: ${FRONTEND_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
@@ -67,7 +71,6 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - backend
     networks:
@@ -78,23 +81,6 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-
-  # Nginx Reverse Proxy (optional, for SSL/Load Balancing)
-  nginx:
-    image: nginx:alpine
-    container_name: agri-ai-nginx-prod
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - agri-network
 
 volumes:
   postgres_data:

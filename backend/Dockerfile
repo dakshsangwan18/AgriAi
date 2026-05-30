@@ -4,6 +4,9 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -19,9 +22,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create directory for logs
-RUN mkdir -p /app/logs
+# Create non-root user and set permissions
+RUN useradd -m appuser && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appuser /app
 
-EXPOSE 10000
+USER appuser
 
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 10000 --proxy-headers --forwarded-allow-ips='*'
+EXPOSE 8000
+
+CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
