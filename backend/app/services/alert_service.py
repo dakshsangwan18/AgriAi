@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app.models.price_alert import PriceAlert
-from app.services.price_service import PriceService
 from app.services.email_service import EmailService
+from app.services.data_integration_service import data_service
 from app.database import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 class AlertService:
     def __init__(self):
-        self.price_service = PriceService()
         self.email_service = EmailService()
     
     async def check_all_alerts(self) -> dict:
@@ -70,7 +69,7 @@ class AlertService:
     async def _get_current_price(self, crop: str, city: str) -> float | None:
         try:
             # Get latest price from database
-            prices_df = self.price_service.data_integration_service.get_price_data(crop, days=1)
+            prices_df = data_service.get_price_data(crop, days=1)
             
             if prices_df.empty:
                 return None
@@ -95,9 +94,7 @@ class AlertService:
         elif alert.alert_type == 'CHANGE':
             # Get price from 24 hours ago
             try:
-                prices_df = self.price_service.data_integration_service.get_price_data(
-                    alert.crop, days=2
-                )
+                prices_df = data_service.get_price_data(alert.crop, days=2)
                 
                 if len(prices_df) >= 2:
                     previous_price = float(prices_df.iloc[0]['price'])

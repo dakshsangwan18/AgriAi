@@ -106,6 +106,10 @@ class AppLogger:
     def info(self, message: str, **kwargs):
         extra = self._build_extra(kwargs)
         self.logger.info(message, extra=extra)
+
+    def debug(self, message: str, **kwargs):
+        extra = self._build_extra(kwargs)
+        self.logger.debug(message, extra=extra)
     
     def warning(self, message: str, **kwargs):
         extra = self._build_extra(kwargs)
