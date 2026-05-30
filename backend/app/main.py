@@ -25,11 +25,11 @@ from app.core.performance_middleware import PerformanceMonitoringMiddleware
 from fastapi.responses import JSONResponse
 import traceback
 
-# Validate environment variables before anything else
-validate_environment()
-
 # Load environment variables from .env file
 load_dotenv()
+
+# Validate environment variables after dotenv is loaded
+validate_environment()
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -44,7 +44,9 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(InputValidationMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 
-if settings.ENVIRONMENT == "production":
+is_production = settings.ENVIRONMENT == "production"
+
+if is_production:
     from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
     app.add_middleware(HTTPSRedirectMiddleware)
     logger.info("[SECURE] HTTPS enforcement enabled - all HTTP requests will redirect to HTTPS")
@@ -60,27 +62,21 @@ app.add_middleware(
     secret_key=settings.SECRET_KEY,
     session_cookie="oauth_session",
     max_age=600,
-    same_site="none",
-    https_only=True
+    same_site="none" if is_production else "lax",
+    https_only=is_production
 )
 
-CORS_ORIGINS = [
-    "http://localhost",
-    "http://127.0.0.1",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "https://agri-ai-eight-nu.vercel.app",
-]
+cors_origins = settings.get_cors_origins()
+if not cors_origins:
+    logger.warning("[SECURE] No CORS origins configured; cross-origin requests will be blocked")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,  # Required for authenticated requests
-    allow_methods=["*"],  # Allow all HTTP methods
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all response headers
+    expose_headers=["X-Request-ID", "X-Response-Time"],
 )
 
 

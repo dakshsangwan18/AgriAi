@@ -55,15 +55,30 @@ class Settings(BaseSettings):
     
     # CORS - Allow multiple origins for development
     FRONTEND_URL: str = "http://localhost"  # Docker deployment
-    
-    @property
-    def CORS_ORIGINS(self) -> List[str]:
-        return [
-            "http://localhost",           # Docker frontend
-            "http://localhost:80",        # Docker frontend explicit port
-            "http://localhost:5173",      # Dev server
-            "http://127.0.0.1:5173",      # Dev server alternate
-        ]
+    # Comma-separated list for production (e.g., https://app.example.com,https://admin.example.com)
+    CORS_ORIGINS: Optional[str] = None
+
+    def get_cors_origins(self) -> List[str]:
+        if self.CORS_ORIGINS:
+            return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+        origins: List[str] = []
+
+        if self.FRONTEND_URL:
+            origins.append(self.FRONTEND_URL.rstrip("/"))
+
+        if self.ENVIRONMENT != "production":
+            origins.extend([
+                "http://localhost",
+                "http://localhost:80",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5174",
+            ])
+
+        # Preserve order while removing duplicates
+        return list(dict.fromkeys(origins))
     
     # Environment
     ENVIRONMENT: str = "development"
