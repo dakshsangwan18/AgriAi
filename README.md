@@ -224,6 +224,10 @@ npm test
 Automated migrations:
 - Use `scripts/run-migrations.sh` during deploy to ensure schema is up to date.
 
+Backups:
+- Create a backup: `scripts/backup-db.sh`
+- Restore a backup: `scripts/restore-db.sh <backup.sql.gz>`
+
 Observability:
 - Backend supports Sentry via `SENTRY_DSN`.
 - Frontend supports Sentry via `VITE_SENTRY_DSN`.

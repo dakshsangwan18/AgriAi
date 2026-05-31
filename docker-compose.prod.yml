@@ -52,6 +52,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - backend_logs:/app/logs
     networks:
@@ -74,6 +76,21 @@ services:
       - "80:80"
     depends_on:
       - backend
+      # Redis Cache (with AOF persistence)
+      redis:
+        image: redis:7-alpine
+        container_name: agri-ai-redis-prod
+        restart: always
+        command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+        volumes:
+          - redis_data:/data
+        healthcheck:
+          test: ["CMD", "redis-cli", "ping"]
+          interval: 10s
+          timeout: 3s
+          retries: 5
+        networks:
+          - agri-network
     networks:
       - agri-network
     healthcheck:
@@ -87,6 +104,8 @@ volumes:
   postgres_data:
     driver: local
   backend_logs:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

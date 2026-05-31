@@ -226,6 +226,17 @@ async def shutdown_event():
     
     logger.info("Shutdown complete")
 
+
+@app.on_event("startup")
+async def warmup_cache():
+    # Validate cache connectivity once during startup
+    if settings.CACHE_ENABLED:
+        healthy = cache_manager.health_check()
+        if healthy:
+            logger.info("Cache connection healthy")
+        else:
+            logger.warning("Cache connection unavailable")
+
 @app.get("/")
 def read_root():
     return {
