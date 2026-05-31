@@ -172,6 +172,10 @@ Logging and artifacts:
 - Runtime logs are written under `backend/logs/` and are gitignored.
 - Do not store secrets in logs or build artifacts.
 
+Operational security:
+- Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR to prevent spoofed client IPs.
+- Anonymous client error logging is disabled in production unless `ALLOW_ANON_ERRORS=true`.
+
 Content Security Policy (CSP):
 - CSP is enforced at the reverse proxy/frontend layer with strict defaults.
 - Inline JSON-LD scripts in [frontend/index.html](frontend/index.html) are allowed via SHA-256 hashes.

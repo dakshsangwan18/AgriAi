@@ -31,6 +31,7 @@ services:
     restart: always
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       REDIS_URL: ${REDIS_URL:-}
       CACHE_ENABLED: ${CACHE_ENABLED:-false}

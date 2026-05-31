@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
 
+    # Proxy and error logging controls
+    FORWARDED_ALLOW_IPS: Optional[str] = None
+    ALLOW_ANON_ERRORS: Optional[bool] = None
+    ANON_ERROR_RATE_LIMIT: str = "10/minute"
+
     # Docs exposure (disable in production by default)
     ENABLE_DOCS: Optional[bool] = None
 
@@ -103,6 +108,11 @@ class Settings(BaseSettings):
     def docs_enabled(self) -> bool:
         if self.ENABLE_DOCS is not None:
             return self.ENABLE_DOCS
+        return self.ENVIRONMENT != "production"
+
+    def allow_anonymous_errors(self) -> bool:
+        if self.ALLOW_ANON_ERRORS is not None:
+            return self.ALLOW_ANON_ERRORS
         return self.ENVIRONMENT != "production"
     
     def _validate_secret_key(self):

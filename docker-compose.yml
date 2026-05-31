@@ -51,6 +51,7 @@ services:
       - "8000:8000"
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agri_ai}
 

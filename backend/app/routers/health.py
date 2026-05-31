@@ -1,9 +1,17 @@
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends, HTTPException
 from typing import Dict, Any
 from app.database import get_pool_status
+from app.api.v1.endpoints.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter(tags=["Health"])
+
+
+def require_admin(current_user: User = Depends(get_current_active_user)) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return current_user
 
 
 @router.get("/health")
@@ -16,7 +24,7 @@ async def health_check():
 
 
 @router.get("/health/db-pool")
-async def database_pool_health():
+async def database_pool_health(admin: User = Depends(require_admin)):
     
     pool_status = get_pool_status()
     
@@ -62,7 +70,7 @@ async def database_pool_health():
 
 
 @router.get("/health/ready")
-async def readiness_check():
+async def readiness_check(admin: User = Depends(require_admin)):
     
     try:
         # Check if we can get pool status (implies DB is accessible)

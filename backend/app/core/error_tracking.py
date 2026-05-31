@@ -5,6 +5,7 @@ from typing import Callable
 import uuid
 import time
 from app.core.logging_config import logger
+from app.core.config import settings
 
 
 class ErrorTrackingMiddleware(BaseHTTPMiddleware):
@@ -60,12 +61,14 @@ class ErrorTrackingMiddleware(BaseHTTPMiddleware):
                 endpoint=request.url.path
             )
             
+            include_error_detail = settings.ENVIRONMENT != "production"
+
             return JSONResponse(
                 status_code=500,
                 content={
                     "detail": "Internal server error",
                     "request_id": request_id,
-                    "error": str(exc) if __debug__ else None
+                    "error": str(exc) if include_error_detail else None
                 },
                 headers={"X-Request-ID": request_id}
             )
