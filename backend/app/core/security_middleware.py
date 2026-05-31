@@ -11,6 +11,59 @@ logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+
+    CSP_SCRIPT_HASHES = [
+        "'sha256-uf+7mNA88XVfCdNJa7MlSLolHXL1jFfDlnxE25IAEuE='",
+        "'sha256-GludQzLp2cagXwICMH/bRlmXJvC1iq2D1VUoJv2HmKg='",
+    ]
+    CSP_STYLE_HASHES = [
+        "'sha256-fO/9dcPp2YR4M42g9eXUAJUtoLh6g11o+hXWpz5hZPY='",
+    ]
+    CSP_IMG_SOURCES = [
+        "'self'",
+        "data:",
+        "https://images.unsplash.com",
+    ]
+    CSP_FONT_SOURCES = [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "data:",
+    ]
+    CSP_STYLE_SOURCES = [
+        "'self'",
+        "https://fonts.googleapis.com",
+    ]
+    CSP_CONNECT_SOURCES = [
+        "'self'",
+        "https://agriai-ecxt.onrender.com",
+    ]
+
+    def _build_csp(self) -> str:
+        connect_sources = list(self.CSP_CONNECT_SOURCES)
+        if settings.CSP_CONNECT_SRC:
+            connect_sources.extend(
+                [origin.strip() for origin in settings.CSP_CONNECT_SRC.split(",") if origin.strip()]
+            )
+
+        policy = [
+            "default-src 'self'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+            "form-action 'self'",
+            f"img-src {' '.join(self.CSP_IMG_SOURCES)}",
+            f"font-src {' '.join(self.CSP_FONT_SOURCES)}",
+            f"style-src {' '.join(self.CSP_STYLE_SOURCES + self.CSP_STYLE_HASHES)}",
+            "style-src-attr 'unsafe-inline'",
+            f"script-src 'self' {' '.join(self.CSP_SCRIPT_HASHES)}",
+            f"connect-src {' '.join(connect_sources)}",
+            "upgrade-insecure-requests",
+        ]
+
+        if settings.CSP_REPORT_URI:
+            policy.append(f"report-uri {settings.CSP_REPORT_URI}")
+
+        return "; ".join(policy) + ";"
     
     async def dispatch(self, request: Request, call_next: Callable):
         response = await call_next(request)
@@ -21,7 +74,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         if settings.ENVIRONMENT == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        report_only = settings.CSP_REPORT_ONLY
+        if report_only is None:
+            report_only = settings.ENVIRONMENT != "production"
+
+        csp_header = "Content-Security-Policy-Report-Only" if report_only else "Content-Security-Policy"
+        response.headers[csp_header] = self._build_csp()
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         

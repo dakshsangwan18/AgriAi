@@ -172,6 +172,13 @@ Logging and artifacts:
 - Runtime logs are written under `backend/logs/` and are gitignored.
 - Do not store secrets in logs or build artifacts.
 
+Content Security Policy (CSP):
+- CSP is enforced at the reverse proxy/frontend layer with strict defaults.
+- Inline JSON-LD scripts in [frontend/index.html](frontend/index.html) are allowed via SHA-256 hashes.
+- The inline style block in [frontend/src/pages/LandingPage.tsx](frontend/src/pages/LandingPage.tsx) is allowed via a SHA-256 hash.
+- If you modify those inline blocks, update the CSP hashes in [nginx/nginx.conf](nginx/nginx.conf) and [frontend/start.sh](frontend/start.sh).
+- Inline style attributes are allowed via `style-src-attr 'unsafe-inline'` because the UI uses inline styles.
+
 # Database Notes
 
 When using Docker, PostgreSQL is managed automatically by Docker Compose.

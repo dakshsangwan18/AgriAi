@@ -33,7 +33,13 @@ validate_environment()
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="Agriculture AI Platform API - Autonomous Agent")
+docs_enabled = settings.docs_enabled()
+app = FastAPI(
+    title="Agriculture AI Platform API - Autonomous Agent",
+    docs_url="/docs" if docs_enabled else None,
+    redoc_url="/redoc" if docs_enabled else None,
+    openapi_url="/openapi.json" if docs_enabled else None,
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

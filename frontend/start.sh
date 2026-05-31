@@ -18,6 +18,9 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Content Security Policy (production-safe defaults)
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' https://fonts.googleapis.com 'sha256-fO/9dcPp2YR4M42g9eXUAJUtoLh6g11o+hXWpz5hZPY='; style-src-attr 'unsafe-inline'; script-src 'self' 'sha256-uf+7mNA88XVfCdNJa7MlSLolHXL1jFfDlnxE25IAEuE=' 'sha256-GludQzLp2cagXwICMH/bRlmXJvC1iq2D1VUoJv2HmKg='; connect-src 'self' https://agriai-ecxt.onrender.com;" always;
+
     # Health check
     location /health {
         return 200 "ok";

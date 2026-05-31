@@ -82,6 +82,15 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+
+    # Docs exposure (disable in production by default)
+    ENABLE_DOCS: Optional[bool] = None
+
+    # Content Security Policy (CSP)
+    CSP_REPORT_ONLY: Optional[bool] = None
+    CSP_REPORT_URI: Optional[str] = None
+    # Comma-separated list of extra connect-src origins (e.g., https://api.example.com)
+    CSP_CONNECT_SRC: Optional[str] = None
     
     class Config:
         env_file = ".env"
@@ -90,6 +99,11 @@ class Settings(BaseSettings):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._validate_secret_key()
+
+    def docs_enabled(self) -> bool:
+        if self.ENABLE_DOCS is not None:
+            return self.ENABLE_DOCS
+        return self.ENVIRONMENT != "production"
     
     def _validate_secret_key(self):
         # Minimum length check
