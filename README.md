@@ -184,6 +184,10 @@ Operational security:
 - Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR to prevent spoofed client IPs.
 - Anonymous client error logging is disabled in production unless `ALLOW_ANON_ERRORS=true`.
 
+Deployment protections:
+- Edge rate limiting is configured in Nginx (`limit_req_zone`).
+- Request size limits are enforced by `MAX_REQUEST_SIZE_MB`.
+
 Content Security Policy (CSP):
 - CSP is enforced at the reverse proxy/frontend layer with strict defaults.
 - Inline JSON-LD scripts in [frontend/index.html](frontend/index.html) are allowed via SHA-256 hashes.
@@ -232,6 +236,18 @@ Observability:
 - Backend supports Sentry via `SENTRY_DSN`.
 - Frontend supports Sentry via `VITE_SENTRY_DSN`.
 - Set sample rates with `SENTRY_TRACES_SAMPLE_RATE` and `VITE_SENTRY_TRACES_SAMPLE_RATE`.
+
+Deployment checklist:
+- Set all required environment variables for backend and frontend.
+- Rotate secrets and set `SECRET_KEY` to a strong value.
+- Configure cookie domain and `COOKIE_SAMESITE`/`COOKIE_SECURE` for production.
+- Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR.
+- Run migrations (`scripts/run-migrations.sh`).
+- Confirm Redis and Postgres health checks pass.
+- Verify CSP hashes after any inline HTML/style changes.
+- Validate Sentry DSN and environment metadata.
+- Confirm HTTPS + TLS certs are installed.
+- Run a smoke test: login, refresh token flow, and key API routes.
 
 # License
 

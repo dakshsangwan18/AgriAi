@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     ALLOW_ANON_ERRORS: Optional[bool] = None
     ANON_ERROR_RATE_LIMIT: str = "10/minute"
 
+    # Request limits
+    MAX_REQUEST_SIZE_MB: int = 10
+
     # Docs exposure (disable in production by default)
     ENABLE_DOCS: Optional[bool] = None
 

@@ -68,7 +68,7 @@ app.add_middleware(ErrorTrackingMiddleware)
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(InputValidationMiddleware)
-app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(RequestSizeLimitMiddleware, max_size=settings.MAX_REQUEST_SIZE_MB * 1024 * 1024)
 app.add_middleware(CsrfProtectionMiddleware)
 
 is_production = settings.ENVIRONMENT == "production"

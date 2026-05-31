@@ -171,6 +171,11 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     
     MAX_REQUEST_SIZE = 10 * 1024 * 1024  # 10MB
+
+    def __init__(self, app, max_size: int | None = None):
+        super().__init__(app)
+        if max_size is not None:
+            self.MAX_REQUEST_SIZE = max_size
     
     async def dispatch(self, request: Request, call_next: Callable):
         # Check Content-Length header
