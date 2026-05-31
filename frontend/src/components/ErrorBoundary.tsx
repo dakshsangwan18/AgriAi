@@ -26,7 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    Sentry.captureException(error, { extra: errorInfo });
+   Sentry.captureException(error, {
+  extra: {
+    componentStack: errorInfo.componentStack,
+  },
+});
     // Log to production error tracking service
     const errorData = {
       message: error.message,
