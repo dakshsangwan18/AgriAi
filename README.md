@@ -224,6 +224,11 @@ npm test
 Automated migrations:
 - Use `scripts/run-migrations.sh` during deploy to ensure schema is up to date.
 
+Observability:
+- Backend supports Sentry via `SENTRY_DSN`.
+- Frontend supports Sentry via `VITE_SENTRY_DSN`.
+- Set sample rates with `SENTRY_TRACES_SAMPLE_RATE` and `VITE_SENTRY_TRACES_SAMPLE_RATE`.
+
 # License
 
 MIT License

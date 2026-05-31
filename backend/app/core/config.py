@@ -106,6 +106,14 @@ class Settings(BaseSettings):
     CSP_REPORT_URI: Optional[str] = None
     # Comma-separated list of extra connect-src origins (e.g., https://api.example.com)
     CSP_CONNECT_SRC: Optional[str] = None
+
+    # Sentry
+    SENTRY_DSN: Optional[str] = None
+    SENTRY_ENV: Optional[str] = None
+    SENTRY_RELEASE: Optional[str] = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
+    SENTRY_PROFILES_SAMPLE_RATE: float = 0.0
+    SENTRY_SEND_PII: bool = False
     
     class Config:
         env_file = ".env"

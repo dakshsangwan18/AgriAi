@@ -25,6 +25,10 @@ from app.core.request_id_middleware import RequestIDMiddleware
 from app.core.performance_middleware import PerformanceMonitoringMiddleware
 from fastapi.responses import JSONResponse
 import traceback
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 # Load environment variables from .env file
 load_dotenv()
@@ -33,6 +37,21 @@ load_dotenv()
 validate_environment()
 
 limiter = Limiter(key_func=get_remote_address)
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.SENTRY_ENV or settings.ENVIRONMENT,
+        release=settings.SENTRY_RELEASE,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
+        send_default_pii=settings.SENTRY_SEND_PII,
+        integrations=[
+            FastApiIntegration(),
+            StarletteIntegration(),
+            SqlalchemyIntegration(),
+        ],
+    )
 
 docs_enabled = settings.docs_enabled()
 app = FastAPI(

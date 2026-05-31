@@ -24,6 +24,7 @@ APScheduler
 twilio
 redis>=5.0.0
 hiredis  # C parser for Redis (performance boost)
+sentry-sdk
 # =================================================================
 # Testing Dependencies
 # =================================================================

@@ -4,6 +4,7 @@ import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { logger } from "../utils/logger";
 import { API_BASE_URL } from "../config/api";
 import { getCookie } from "../utils/cookies";
+import * as Sentry from "@sentry/react";
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    Sentry.captureException(error, { extra: errorInfo });
     // Log to production error tracking service
     const errorData = {
       message: error.message,
