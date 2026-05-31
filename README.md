@@ -141,6 +141,10 @@ FRONTEND_URL=http://localhost:5173
 Do not commit the `.env` file to version control.
 Use a `.env.example` file for reference instead.
 
+Environment separation (examples):
+- Backend: `.env.development.example`, `.env.staging.example`, `.env.production.example`
+- Frontend: `.env.development.example`, `.env.staging.example`, `.env.production.example`
+
 To generate a secure secret key:
 
 ```
@@ -216,6 +220,9 @@ npm test
 * Run the application behind Nginx or a cloud load balancer
 * Ensure HTTPS is enabled
 * Use strong secrets and production API keys
+
+Automated migrations:
+- Use `scripts/run-migrations.sh` during deploy to ensure schema is up to date.
 
 # License
 

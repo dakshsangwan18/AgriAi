@@ -43,5 +43,8 @@ nginx/ssl/
 .env.docker
 backend/.env
 backend/.env.local
+backend/.env.development
+backend/.env.staging
+backend/.env.production
 frontend/.env.local
 frontend/.env.*.local
