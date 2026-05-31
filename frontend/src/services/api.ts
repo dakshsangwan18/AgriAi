@@ -1,14 +1,49 @@
 import axios, { AxiosError } from "axios";
 import { API_BASE_URL } from "../config/api";
+import { getCookie } from "../utils/cookies";
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60 second timeout (agent analysis can take 30-40s)
+  withCredentials: true,
+});
+
+apiClient.interceptors.request.use((config) => {
+  const method = (config.method || "get").toLowerCase();
+  if (["post", "put", "patch", "delete"].includes(method)) {
+    const csrfToken = getCookie("csrf_token");
+    if (csrfToken) {
+      config.headers = config.headers || {};
+      config.headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
+  return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const status = error.response?.status;
+    const originalRequest = error.config as (typeof error.config & {
+      _retry?: boolean;
+    });
+
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !String(originalRequest.url || "").includes("/v1/auth/login") &&
+      !String(originalRequest.url || "").includes("/v1/auth/refresh")
+    ) {
+      originalRequest._retry = true;
+      try {
+        await apiClient.post("/v1/auth/refresh");
+        return apiClient(originalRequest);
+      } catch {
+        // Fall through to default error handling
+      }
+    }
+
     if (error.code === "ECONNABORTED") {
       throw new Error("Request timeout. Please try again.");
     }
@@ -66,7 +101,7 @@ export interface WeatherAlerts {
 
 export const weatherAPI = {
   getCurrentWeather: async (city: string): Promise<CurrentWeather> => {
-    const response = await axios.get(`${API_BASE_URL}/weather/current`, {
+    const response = await apiClient.get("/weather/current", {
       params: { city },
     });
     return response.data;
@@ -76,14 +111,14 @@ export const weatherAPI = {
     city: string,
     days: number = 5
   ): Promise<WeatherForecast> => {
-    const response = await axios.get(`${API_BASE_URL}/weather/forecast`, {
+    const response = await apiClient.get("/weather/forecast", {
       params: { city, days },
     });
     return response.data;
   },
 
   getAlerts: async (city: string): Promise<WeatherAlerts> => {
-    const response = await axios.get(`${API_BASE_URL}/weather/alerts`, {
+    const response = await apiClient.get("/weather/alerts", {
       params: { city },
     });
     return response.data;
@@ -131,28 +166,28 @@ export const priceAPI = {
     crop: string,
     days: number = 30
   ): Promise<PricePrediction> => {
-    const response = await axios.get(`${API_BASE_URL}/prices/predict`, {
+    const response = await apiClient.get("/prices/predict", {
       params: { crop, days },
     });
     return response.data;
   },
 
   getHistorical: async (crop: string, days: number = 90) => {
-    const response = await axios.get(`${API_BASE_URL}/prices/historical`, {
+    const response = await apiClient.get("/prices/historical", {
       params: { crop, days },
     });
     return response.data;
   },
 
   compareMarkets: async (crop: string): Promise<MarketComparisonData> => {
-    const response = await axios.get(`${API_BASE_URL}/prices/compare`, {
+    const response = await apiClient.get("/prices/compare", {
       params: { crop },
     });
     return response.data;
   },
 
   getCrops: async () => {
-    const response = await axios.get(`${API_BASE_URL}/prices/crops`);
+    const response = await apiClient.get("/prices/crops");
     return response.data;
   },
 };
@@ -208,17 +243,17 @@ export const yieldAPI = {
   predictYield: async (
     data: YieldPredictionRequest
   ): Promise<YieldPredictionResponse> => {
-    const response = await axios.post(`${API_BASE_URL}/yield/predict`, data);
+    const response = await apiClient.post("/yield/predict", data);
     return response.data;
   },
 
   getCrops: async () => {
-    const response = await axios.get(`${API_BASE_URL}/yield/crops`);
+    const response = await apiClient.get("/yield/crops");
     return response.data;
   },
 
   getCropInfo: async (crop: string) => {
-    const response = await axios.get(`${API_BASE_URL}/yield/crop-info/${crop}`);
+    const response = await apiClient.get(`/yield/crop-info/${crop}`);
     return response.data;
   },
 };
@@ -341,51 +376,27 @@ export interface Notification {
 // Notification API calls
 export const notificationAPI = {
   getAll: async (): Promise<Notification[]> => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(`${API_BASE_URL}/notifications/`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const response = await apiClient.get("/notifications/");
     return response.data;
   },
 
   getUnreadCount: async (): Promise<{ unread_count: number }> => {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(
-      `${API_BASE_URL}/notifications/unread-count`,
-      {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }
-    );
+    const response = await apiClient.get("/notifications/unread-count");
     return response.data;
   },
 
   markAsRead: async (notificationIds: number[]): Promise<void> => {
-    const token = localStorage.getItem("token");
-    await axios.post(
-      `${API_BASE_URL}/notifications/mark-read`,
-      { notification_ids: notificationIds },
-      {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }
-    );
+    await apiClient.post("/notifications/mark-read", {
+      notification_ids: notificationIds,
+    });
   },
 
   markAllAsRead: async (): Promise<void> => {
-    const token = localStorage.getItem("token");
-    await axios.post(
-      `${API_BASE_URL}/notifications/mark-all-read`,
-      {},
-      {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }
-    );
+    await apiClient.post("/notifications/mark-all-read", {});
   },
 
   delete: async (notificationId: number): Promise<void> => {
-    const token = localStorage.getItem("token");
-    await axios.delete(`${API_BASE_URL}/notifications/${notificationId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    await apiClient.delete(`/notifications/${notificationId}`);
   },
 };
 

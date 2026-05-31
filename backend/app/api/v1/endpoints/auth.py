@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -24,9 +24,11 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.core.validators import validate_email, validate_password
+from app.models.refresh_token import RefreshToken
 import asyncio
 import secrets
 import time
+import hashlib
 from datetime import datetime, timedelta, timezone
 from app.services.email_service import email_service
 from app.core.logging_config import logger
@@ -38,7 +40,7 @@ limiter = Limiter(
     enabled=settings.ENVIRONMENT != "testing"
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 config = Config(environ={
     'GOOGLE_CLIENT_ID': settings.GOOGLE_CLIENT_ID or '',
@@ -56,8 +58,51 @@ oauth.register(
 )
 
 
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _set_cookie(
+    response: Response,
+    name: str,
+    value: str,
+    max_age: int,
+    http_only: bool,
+    path: str = "/"
+):
+    response.set_cookie(
+        key=name,
+        value=value,
+        max_age=max_age,
+        expires=max_age,
+        httponly=http_only,
+        secure=settings.cookie_secure(),
+        samesite=settings.cookie_samesite(),
+        domain=settings.COOKIE_DOMAIN,
+        path=path,
+    )
+
+
+def _clear_cookie(response: Response, name: str, path: str = "/"):
+    response.delete_cookie(
+        key=name,
+        domain=settings.COOKIE_DOMAIN,
+        path=path,
+    )
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str, csrf_token: str):
+    access_max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    refresh_max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+
+    _set_cookie(response, settings.ACCESS_TOKEN_COOKIE_NAME, access_token, access_max_age, True, "/")
+    _set_cookie(response, settings.REFRESH_TOKEN_COOKIE_NAME, refresh_token, refresh_max_age, True, "/api/v1/auth")
+    _set_cookie(response, settings.CSRF_COOKIE_NAME, csrf_token, refresh_max_age, False, "/")
+
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     db: Session = Depends(get_db)
 ) -> User:
     credentials_exception = HTTPException(
@@ -67,7 +112,11 @@ async def get_current_user(
     )
     
     # Decode token
-    payload = decode_access_token(token)
+    raw_token = token or request.cookies.get(settings.ACCESS_TOKEN_COOKIE_NAME)
+    if not raw_token:
+        raise credentials_exception
+
+    payload = decode_access_token(raw_token)
     if payload is None:
         logger.warning("Invalid token received", endpoint="/api/auth/verify")
         raise credentials_exception
@@ -145,6 +194,7 @@ async def register(request: Request, user_data: UserCreate, db: Session = Depend
 @limiter.limit("50/hour")
 async def login(
     request: Request,
+    response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db)
 ):
@@ -180,6 +230,23 @@ async def login(
         data={"sub": user.email, "user_id": user.id},
         expires_delta=access_token_expires
     )
+
+    refresh_token = secrets.token_urlsafe(48)
+    refresh_hash = _hash_token(refresh_token)
+    refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=refresh_hash,
+            expires_at=refresh_expires,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=client_ip
+        )
+    )
+    db.commit()
+
+    csrf_token = secrets.token_urlsafe(32)
+    _set_auth_cookies(response, access_token, refresh_token, csrf_token)
     
     logger.info(f"User logged in successfully: {user.email} (login_count={user.login_count}, ip={client_ip})")
     
@@ -216,8 +283,82 @@ async def update_profile(
 
 
 @router.post("/logout")
-async def logout(current_user: Annotated[User, Depends(get_current_active_user)]):
+async def logout(
+    request: Request,
+    response: Response,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Session = Depends(get_db)
+):
+    raw_refresh = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if raw_refresh:
+        token_hash = _hash_token(raw_refresh)
+        token_row = db.query(RefreshToken).filter(
+            RefreshToken.token_hash == token_hash,
+            RefreshToken.revoked_at.is_(None)
+        ).first()
+        if token_row:
+            token_row.revoked_at = datetime.now(timezone.utc)
+            token_row.last_used_at = datetime.now(timezone.utc)
+            db.commit()
+
+    _clear_cookie(response, settings.ACCESS_TOKEN_COOKIE_NAME, "/")
+    _clear_cookie(response, settings.REFRESH_TOKEN_COOKIE_NAME, "/api/v1/auth")
+    _clear_cookie(response, settings.CSRF_COOKIE_NAME, "/")
+
     return {"message": "Successfully logged out"}
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("30/hour")
+async def refresh_tokens(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    raw_refresh = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if not raw_refresh:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+
+    token_hash = _hash_token(raw_refresh)
+    token_row = db.query(RefreshToken).filter(
+        RefreshToken.token_hash == token_hash,
+        RefreshToken.revoked_at.is_(None)
+    ).first()
+
+    if not token_row or token_row.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token invalid or expired")
+
+    user = db.query(User).filter(User.id == token_row.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive")
+
+    token_row.revoked_at = datetime.now(timezone.utc)
+    token_row.last_used_at = datetime.now(timezone.utc)
+
+    new_refresh = secrets.token_urlsafe(48)
+    new_refresh_hash = _hash_token(new_refresh)
+    new_refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=new_refresh_hash,
+            expires_at=new_refresh_expires,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=request.client.host if request.client else None
+        )
+    )
+    db.commit()
+
+    access_token = create_access_token(
+        data={"sub": user.email, "user_id": user.id},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    csrf_token = secrets.token_urlsafe(32)
+    _set_auth_cookies(response, access_token, new_refresh, csrf_token)
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
@@ -288,6 +429,12 @@ async def reset_password(
         )
     
     user.hashed_password = get_password_hash(reset_request.new_password)
+
+    # Revoke all active refresh tokens after password reset
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        RefreshToken.revoked_at.is_(None)
+    ).update({"revoked_at": datetime.now(timezone.utc)}, synchronize_session=False)
     
     user.reset_token = None
     user.reset_token_expires = None
@@ -390,11 +537,27 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         access_token = create_access_token(
             data={"sub": user.email, "user_id": user.id}
         )
-        
-        # Redirect to frontend with token
-        frontend_url = f"{settings.FRONTEND_URL}/auth/google/callback?token={access_token}"
+
+        refresh_token = secrets.token_urlsafe(48)
+        refresh_hash = _hash_token(refresh_token)
+        refresh_expires = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        db.add(
+            RefreshToken(
+                user_id=user.id,
+                token_hash=refresh_hash,
+                expires_at=refresh_expires,
+                user_agent=request.headers.get("user-agent"),
+                ip_address=client_ip
+            )
+        )
+        db.commit()
+
+        csrf_token = secrets.token_urlsafe(32)
+        response = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/google/callback")
+        _set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
         logger.info(f"[OAUTH] Successfully authenticated user {email}, redirecting to frontend")
-        return RedirectResponse(url=frontend_url)
+        return response
         
     except Exception as e:
         import traceback

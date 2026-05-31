@@ -10,7 +10,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from "lucide-react";
-import { API_BASE_URL } from "../config/api";
+import { apiClient } from "../services/api";
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -65,7 +65,7 @@ const ResetPasswordPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
+      const response = await apiClient.post("/v1/auth/reset-password", {
         token,
         new_password: password,
       });

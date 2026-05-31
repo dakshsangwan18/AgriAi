@@ -16,6 +16,7 @@ from app.core.security_middleware import (
     InputValidationMiddleware,
     RequestSizeLimitMiddleware
 )
+from app.core.csrf_middleware import CsrfProtectionMiddleware
 from app.core.logging_config import logger
 from app.core.error_tracking import ErrorTrackingMiddleware
 from app.core.cache import cache_manager
@@ -49,6 +50,7 @@ app.add_middleware(ErrorTrackingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(InputValidationMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(CsrfProtectionMiddleware)
 
 is_production = settings.ENVIRONMENT == "production"
 

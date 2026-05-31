@@ -4,6 +4,7 @@
  */
 
 import { API_BASE_URL } from "../config/api";
+import { getCookie } from "../utils/cookies";
 
 interface ErrorLog {
   message: string;
@@ -39,12 +40,13 @@ class ErrorLogger {
     };
 
     try {
-      const token = localStorage.getItem("token");
+      const csrfToken = getCookie("csrf_token");
       await fetch(`${this.apiUrl}/errors/client`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify(errorData),
       });
@@ -63,12 +65,13 @@ class ErrorLogger {
     data?: Record<string, unknown>
   ): Promise<void> {
     try {
-      const token = localStorage.getItem("token");
+      const csrfToken = getCookie("csrf_token");
       await fetch(`${this.apiUrl}/analytics/event`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify({
           event: eventName,

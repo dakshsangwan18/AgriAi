@@ -11,11 +11,10 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
-import axios from "axios";
-import { API_BASE_URL } from "../config/api";
+import { apiClient } from "../services/api";
 
 export const ProfilePage: React.FC = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -46,9 +45,7 @@ export const ProfilePage: React.FC = () => {
     setLoading(true);
 
     try {
-      await axios.put(`${API_BASE_URL}/v1/auth/me`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.put("/v1/auth/me", formData);
       setSuccess("Profile updated successfully!");
     } catch {
       setError("Failed to update profile");

@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { API_BASE_URL } from "../config/api";
+import { apiClient } from "../services/api";
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -24,12 +24,9 @@ const ForgotPasswordPage: React.FC = () => {
     setMessage("");
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/forgot-password`,
-        {
-          email,
-        }
-      );
+      const response = await apiClient.post("/v1/auth/forgot-password", {
+        email,
+      });
       setMessage(response.data.message);
 
       // Optional: redirect to login after 5 seconds

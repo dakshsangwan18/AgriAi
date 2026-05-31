@@ -94,7 +94,7 @@ def get_pool_status():
 
 
 def init_db():
-    from app.models import user, price_data, prediction_history, agent_analysis, notification
+    from app.models import user, price_data, prediction_history, agent_analysis, notification, refresh_token
     
     # Import all models to ensure they're registered
     Base.metadata.create_all(bind=engine)

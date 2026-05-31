@@ -1,13 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { apiClient } from "../services/api";
 
 export const GoogleCallbackPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get("token");
     const error = searchParams.get("error");
 
     if (error) {
@@ -15,15 +15,12 @@ export const GoogleCallbackPage: React.FC = () => {
       return;
     }
 
-    if (token) {
-      // Save token to localStorage
-      localStorage.setItem("token", token);
-
-      // Redirect to dashboard - AuthContext will auto-load user
-      window.location.href = "/app";
-    } else {
-      navigate("/login");
-    }
+    apiClient
+      .get("/v1/auth/me")
+      .then(() => {
+        window.location.href = "/app";
+      })
+      .catch(() => navigate("/login"));
   }, [searchParams, navigate]);
 
   return (

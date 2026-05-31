@@ -8,9 +8,8 @@ import {
   Loader,
   CheckCircle,
 } from "lucide-react";
-import axios from "axios";
+import { apiClient } from "../services/api";
 import { logger } from "../utils/logger";
-import { API_BASE_URL } from "../config/api";
 
 interface PriceAlert {
   id: string;
@@ -41,10 +40,7 @@ export const AlertsPage: React.FC = () => {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_BASE_URL}/alerts`, {
-        headers: { Authorization: `Bearer ${token} ` },
-      });
+      const response = await apiClient.get("/alerts");
       setAlerts(response.data);
     } catch (error) {
       logger.error("Error fetching alerts", error);
@@ -60,8 +56,6 @@ export const AlertsPage: React.FC = () => {
   const createAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
-
       interface AlertPayload {
         crop: string;
         city: string;
@@ -85,9 +79,7 @@ export const AlertsPage: React.FC = () => {
         payload.threshold_price = parseFloat(formData.threshold_price);
       }
 
-      await axios.post(`${API_BASE_URL}/alerts`, payload, {
-        headers: { Authorization: `Bearer ${token} ` },
-      });
+      await apiClient.post("/alerts", payload);
 
       setSuccess("Price alert created successfully!");
       setTimeout(() => setSuccess(""), 3000);
@@ -113,10 +105,7 @@ export const AlertsPage: React.FC = () => {
     if (!confirm("Delete this alert?")) return;
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE_URL}/alerts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.delete(`/alerts/${id}`);
       fetchAlerts();
     } catch (error) {
       logger.error("Error deleting alert", error);
@@ -125,12 +114,9 @@ export const AlertsPage: React.FC = () => {
 
   const toggleActive = async (alert: PriceAlert) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `${API_BASE_URL}/alerts/${alert.id}`,
-        { is_active: !alert.is_active },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiClient.patch(`/alerts/${alert.id}`, {
+        is_active: !alert.is_active,
+      });
       fetchAlerts();
     } catch (error) {
       logger.error("Error toggling alert", error);

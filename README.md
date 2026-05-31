@@ -172,6 +172,10 @@ Logging and artifacts:
 - Runtime logs are written under `backend/logs/` and are gitignored.
 - Do not store secrets in logs or build artifacts.
 
+Auth cookies:
+- Access/refresh tokens are stored in httpOnly cookies; the frontend never stores tokens in localStorage.
+- CSRF protection is enforced for state-changing requests using `X-CSRF-Token`.
+
 Operational security:
 - Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR to prevent spoofed client IPs.
 - Anonymous client error logging is disabled in production unless `ALLOW_ANON_ERRORS=true`.

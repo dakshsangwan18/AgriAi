@@ -31,7 +31,7 @@ export const CommandPalette: React.FC = () => {
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const commands: Command[] = [
@@ -139,7 +139,7 @@ export const CommandPalette: React.FC = () => {
       label: "Logout",
       icon: LogOut,
       action: () => {
-        localStorage.removeItem("token");
+        logout();
         navigate("/login");
       },
       keywords: ["logout", "signout", "exit"],

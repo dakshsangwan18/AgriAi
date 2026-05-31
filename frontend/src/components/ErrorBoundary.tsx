@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { logger } from "../utils/logger";
 import { API_BASE_URL } from "../config/api";
+import { getCookie } from "../utils/cookies";
 
 interface Props {
   children: ReactNode;
@@ -34,11 +35,14 @@ export class ErrorBoundary extends Component<Props, State> {
       url: window.location.href,
     };
 
+    const csrfToken = getCookie("csrf_token");
+
     fetch(`${API_BASE_URL}/errors/client`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       },
       body: JSON.stringify(errorData),
     }).catch((err) => {

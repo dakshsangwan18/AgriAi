@@ -48,6 +48,7 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     price_alerts = relationship("PriceAlert", back_populates="user", cascade="all, delete-orphan")
     user_crops = relationship("UserCrop", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(email={self.email}, name={self.full_name})>"

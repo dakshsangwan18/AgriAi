@@ -31,7 +31,17 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "your-secret-key-change-in-production-min-32-chars"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+
+    # Cookie auth
+    ACCESS_TOKEN_COOKIE_NAME: str = "access_token"
+    REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
+    CSRF_COOKIE_NAME: str = "csrf_token"
+    CSRF_HEADER_NAME: str = "X-CSRF-Token"
+    COOKIE_DOMAIN: Optional[str] = None
+    COOKIE_SAMESITE: Optional[str] = None
+    COOKIE_SECURE: Optional[bool] = None
     
     # Email Configuration (Choose one method)
     # Method 1: SendGrid (Recommended for production)
@@ -109,6 +119,16 @@ class Settings(BaseSettings):
         if self.ENABLE_DOCS is not None:
             return self.ENABLE_DOCS
         return self.ENVIRONMENT != "production"
+
+    def cookie_secure(self) -> bool:
+        if self.COOKIE_SECURE is not None:
+            return self.COOKIE_SECURE
+        return self.ENVIRONMENT == "production"
+
+    def cookie_samesite(self) -> str:
+        if self.COOKIE_SAMESITE:
+            return self.COOKIE_SAMESITE
+        return "none" if self.ENVIRONMENT == "production" else "lax"
 
     def allow_anonymous_errors(self) -> bool:
         if self.ALLOW_ANON_ERRORS is not None:

@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { logger } from "../utils/logger";
-import { API_BASE_URL } from "../config/api";
+import { apiClient } from "../services/api";
 
 interface User {
   id: number;
@@ -20,7 +20,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
@@ -48,33 +47,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
-  );
   const [loading, setLoading] = useState(true);
 
   // API base URL - configured via centralized config
 
-  // Fetch current user on mount if token exists
+  // Fetch current user on mount (cookie-based auth)
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
     const fetchUser = async () => {
-      if (token) {
-        try {
-          const response = await axios.get(`${API_BASE_URL}/v1/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          });
-          if (!cancelled) setUser(response.data);
-        } catch (error) {
-          if (axios.isCancel(error)) return;
-          if (cancelled) return;
-          logger.error("Failed to fetch user", { error });
-          localStorage.removeItem("token");
-          setToken(null);
-        }
+      try {
+        const response = await apiClient.get("/v1/auth/me", {
+          signal: controller.signal,
+        });
+        if (!cancelled) setUser(response.data);
+      } catch (error) {
+        if (axios.isCancel(error)) return;
+        if (cancelled) return;
+        logger.error("Failed to fetch user", { error });
+        setUser(null);
       }
       if (!cancelled) setLoading(false);
     };
@@ -89,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       cancelled = true;
       controller.abort();
     };
-  }, [token]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -98,24 +90,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       formData.append("username", email); // OAuth2 uses 'username' field
       formData.append("password", password);
 
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, formData);
-      const { access_token } = response.data;
+      await apiClient.post("/v1/auth/login", formData);
 
-      // Save token to localStorage FIRST
-      localStorage.setItem("token", access_token);
-
-      // Fetch user data
-      const userResponse = await axios.get(`${API_BASE_URL}/v1/auth/me`, {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
+      const userResponse = await apiClient.get("/v1/auth/me");
 
       // Set all state
       setUser(userResponse.data);
-      setToken(access_token);
     } catch (error) {
-      // Clean up on error
-      localStorage.removeItem("token");
-      setToken(null);
       setUser(null);
 
       if (axios.isAxiosError(error)) {
@@ -133,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     location?: string
   ) => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/register`, {
+      await apiClient.post("/v1/auth/register", {
         email,
         password,
         full_name: fullName,
@@ -152,14 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
+    apiClient
+      .post("/v1/auth/logout")
+      .catch((error) => logger.error("Logout failed", { error }))
+      .finally(() => setUser(null));
   };
 
   const value = {
     user,
-    token,
     login,
     register,
     logout,
