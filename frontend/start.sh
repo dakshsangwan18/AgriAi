@@ -10,9 +10,7 @@ server {
     index index.html;
 
     # Basic bot/spam protection
-    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=60r/m;
-    limit_req_zone $binary_remote_addr zone=general_limit:10m rate=120r/m;
-
+    
     # Gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript;
