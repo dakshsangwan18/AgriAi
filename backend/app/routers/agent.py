@@ -57,9 +57,9 @@ async def analyze_crop(
 
 
 @router.get("/status")
-async def agent_status(
-    db: Session = Depends(get_db),
-    admin: Annotated[User, Depends(require_admin)]
+async def some_function(
+    admin: Annotated[User, Depends(require_admin)],
+    query: str = "",
 ):
     # Get total analyses count
     total_analyses = db.query(func.count(AgentAnalysis.id)).scalar() or 0
