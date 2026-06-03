@@ -1,4 +1,5 @@
 
+from ast import pattern
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
@@ -235,7 +236,7 @@ async def delete_user(
 @router.get("/logs")
 async def get_system_logs(
     limit: int = Query(50, ge=1, le=500),
-    level: Optional[str] = Query(None, regex="^(info|warning|error)$"),
+    level: Optional[str] = Query(None, pattern="^(info|warning|error)$"),
     db: Session = Depends(get_db),
     admin: User = Depends(verify_admin)
 ):
