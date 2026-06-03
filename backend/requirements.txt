@@ -19,7 +19,7 @@ pandas
 numpy
 scikit-learn
 statsmodels
-google-generativeai
+google-genai
 APScheduler
 twilio
 redis>=5.0.0

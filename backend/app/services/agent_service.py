@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
-import google.generativeai as genai
+from google import genai
 import os
 
 from app.services.decision_engine import decision_engine, Decision
