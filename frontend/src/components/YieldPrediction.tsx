@@ -35,7 +35,7 @@ const YieldPrediction = () => {
     { value: "cotton", label: "Cotton (कपास)", icon: "🌱" },
     { value: "sugarcane", label: "Sugarcane (गन्ना)", icon: "🎋" },
     { value: "maize", label: "Maize (मक्का)", icon: "🌽" },
-    { value: "soybean", label: "Soybean (सोयाबीन)", icon: "🫘" },
+    { value: "soyabean", label: "Soybean (सोयाबीन)", icon: "🫘" },
     { value: "potato", label: "Potato (आलू)", icon: "🥔" },
     { value: "tomato", label: "Tomato (टमाटर)", icon: "🍅" },
   ];

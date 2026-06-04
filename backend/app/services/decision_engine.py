@@ -178,21 +178,41 @@ class DecisionEngine:
         crop: str, 
         forecast: Dict
     ) -> MarketSignal:
+        if not isinstance(forecast, dict) or forecast.get("error"):
+            return MarketSignal(
+                signal_type='NEUTRAL',
+                strength=0.0,
+                reason="Weather data unavailable. No weather impact applied.",
+                data_source='WEATHER_FORECAST'
+            )
+
         # Weather-sensitive crops
         perishables = ['tomato', 'onion', 'potato']
         grains = ['wheat', 'rice', 'soyabean']
         
         # Extract rain probability from forecast
         rain_days = 0
-        total_rain = 0
-        
+        items = []
+
         if 'list' in forecast:
-            for item in forecast['list'][:5]:  # Next 5 days
-                if 'rain' in item:
-                    rain_days += 1
-                    total_rain += item.get('rain', {}).get('3h', 0)
-        
-        rain_probability = rain_days / 5.0 if forecast.get('list') else 0
+            items = forecast['list'][:5]  # OpenWeather format
+        elif 'forecasts' in forecast:
+            items = forecast['forecasts'][:5]  # WeatherService format
+
+        for item in items:
+            if 'pop' in item:
+                is_rainy = item.get('pop', 0) >= self.WEATHER_IMPACT_THRESHOLD
+            elif 'rain_probability' in item:
+                is_rainy = item.get('rain_probability', 0) >= (self.WEATHER_IMPACT_THRESHOLD * 100)
+            elif 'rain' in item:
+                is_rainy = True
+            else:
+                continue
+
+            if is_rainy:
+                rain_days += 1
+
+        rain_probability = rain_days / len(items) if items else 0
         
         # Decision logic based on crop type
         if crop.lower() in perishables and rain_probability > self.WEATHER_IMPACT_THRESHOLD:

@@ -12,7 +12,7 @@ class YieldService:
         "cotton": {"min_yield": 15, "max_yield": 35, "optimal_temp": 28, "optimal_rainfall": 700},
         "sugarcane": {"min_yield": 600, "max_yield": 1000, "optimal_temp": 28, "optimal_rainfall": 1500},
         "maize": {"min_yield": 30, "max_yield": 70, "optimal_temp": 24, "optimal_rainfall": 600},
-        "soybean": {"min_yield": 15, "max_yield": 30, "optimal_temp": 26, "optimal_rainfall": 500},
+        "soyabean": {"min_yield": 15, "max_yield": 30, "optimal_temp": 26, "optimal_rainfall": 500},
         "potato": {"min_yield": 200, "max_yield": 400, "optimal_temp": 18, "optimal_rainfall": 500},
         "tomato": {"min_yield": 300, "max_yield": 600, "optimal_temp": 24, "optimal_rainfall": 600},
     }
@@ -20,7 +20,7 @@ class YieldService:
     SOIL_TYPES = ["loamy", "clay", "sandy", "black", "red", "alluvial"]
     CROP_ALIASES = {
         "corn": "maize",
-        "soyabean": "soybean",
+        "soybean": "soyabean",
     }
     
     def __init__(self):
