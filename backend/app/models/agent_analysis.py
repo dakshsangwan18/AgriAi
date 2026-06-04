@@ -1,5 +1,6 @@
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.database import Base
 
@@ -8,6 +9,7 @@ class AgentAnalysis(Base):
     __tablename__ = "agent_analyses"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     crop = Column(String, nullable=False, index=True)
     city = Column(String, nullable=False)
     
@@ -32,10 +34,13 @@ class AgentAnalysis(Base):
     # Metadata
     analysis_duration = Column(Float)  # seconds
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    user = relationship("User", back_populates="agent_analyses")
     
     def to_dict(self):
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "crop": self.crop,
             "city": self.city,
             "current_price": self.current_price,

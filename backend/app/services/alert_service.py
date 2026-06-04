@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
@@ -145,12 +144,12 @@ class AlertService:
                 title=f" {alert.crop.upper()} Price Alert",
                 message=message,
                 priority='high' if abs(current_price - (alert.threshold_price or 0)) > 100 else 'normal',
-                extra_data=json.dumps({
+                extra_data={
                     "crop": alert.crop,
                     "city": alert.city,
                     "current_price": current_price,
                     "alert_type": alert.alert_type,
-                })
+                }
             )
             db.add(notification)
             

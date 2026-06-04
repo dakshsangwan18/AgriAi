@@ -72,11 +72,10 @@ export default function AgentDashboard() {
     { value: "tomato", label: "Tomato", icon: "🍅" },
     { value: "onion", label: "Onion", icon: "🧅" },
     { value: "potato", label: "Potato", icon: "🥔" },
-    { value: "corn", label: "Corn", icon: "🌽" },
-    { value: "soybean", label: "Soybean", icon: "🫘" },
+    { value: "maize", label: "Maize", icon: "🌽" },
+    { value: "soyabean", label: "Soybean", icon: "🫘" },
     { value: "sugarcane", label: "Sugarcane", icon: "🎋" },
     { value: "cotton", label: "Cotton", icon: "🌱" },
-    { value: "mustard", label: "Mustard", icon: "🌻" },
   ];
 
   const cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata", "Pune", "Hyderabad", "Jaipur", "Lucknow", "Ahmedabad"];

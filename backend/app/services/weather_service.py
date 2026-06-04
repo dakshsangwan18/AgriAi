@@ -24,6 +24,9 @@ class WeatherService:
         if cached:
             logger.info(f"Weather cache hit for {city}", endpoint="weather")
             return cached
+
+        if not OPENWEATHER_API_KEY:
+            return {"error": "Weather service is not configured"}
         
         try:
             url = f"{BASE_URL}/weather"
@@ -70,6 +73,9 @@ class WeatherService:
         if cached:
             logger.info(f"Forecast cache hit for {city}", endpoint="weather")
             return cached
+
+        if not OPENWEATHER_API_KEY:
+            return {"error": "Forecast service is not configured"}
         
         try:
             url = f"{BASE_URL}/forecast"

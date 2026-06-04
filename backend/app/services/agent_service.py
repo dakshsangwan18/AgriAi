@@ -23,8 +23,8 @@ class SmartCropAgent:
         self.weather_service = WeatherService()
         
         try:
-            genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-            self.llm = genai.GenerativeModel('gemini-flash-latest')  # Using free tier compatible model
+            api_key = os.getenv("GEMINI_API_KEY")
+            self.llm = genai.Client(api_key=api_key) if api_key else None
         except Exception as e:
             logger.warning(f"Gemini initialization failed: {e}. LLM insights will be disabled.")
             self.llm = None
@@ -34,10 +34,12 @@ class SmartCropAgent:
         crop: str, 
         city: str = "Delhi",
         user_preferences: Optional[Dict] = None,
-        days_ahead: int = 7
+        days_ahead: int = 7,
+        user_id: Optional[int] = None,
     ) -> Dict:
         
         start_time = datetime.now()
+        crop = PriceService.normalize_crop(crop)
         logger.info(f"🤖 Agent analyzing {crop} in {city} for {days_ahead} days")
         
         try:
@@ -107,6 +109,7 @@ class SmartCropAgent:
                 final_predicted_price = float(predictions[-1]['price']) if predictions else None
                 
                 analysis_record = AgentAnalysis(
+                    user_id=user_id,
                     crop=crop,
                     city=city,
                     current_price=float(current_price),  # Convert numpy float to Python float
@@ -193,8 +196,11 @@ Create a SHORT (3-4 lines) WhatsApp-style message explaining:
 
 Keep it practical and friendly. Use Rs. for prices."""
 
-            response = self.llm.generate_content(prompt)
-            return response.text.strip()
+            response = self.llm.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+            )
+            return (response.text or "").strip() or decision.reasoning
             
         except Exception as e:
             logger.warning(f"LLM insights failed: {e}")
@@ -240,7 +246,7 @@ Keep it practical and friendly. Use Rs. for prices."""
                 # Analyze each favorite crop
                 for crop in favorite_crops:
                     try:
-                        analysis = self.analyze_crop(crop, city)
+                        analysis = self.analyze_crop(crop, city, user_id=user.id)
                         decision = analysis.get('decision') or {}
                         action = decision.get('action')
                         confidence = decision.get('confidence', 0)

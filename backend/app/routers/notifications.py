@@ -47,6 +47,32 @@ class MarkReadRequest(BaseModel):
     notification_ids: List[int]
 
 
+def _normalize_extra_data(value):
+    if isinstance(value, dict) or value is None:
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
+def _to_notification_response(notification: Notification) -> NotificationResponse:
+    return NotificationResponse(
+        id=notification.id,
+        type=notification.type,
+        title=notification.title,
+        message=notification.message,
+        is_read=notification.is_read,
+        priority=notification.priority,
+        created_at=notification.created_at,
+        read_at=notification.read_at,
+        extra_data=_normalize_extra_data(notification.extra_data),
+    )
+
+
 @router.get("/", response_model=List[NotificationResponse])
 @limiter.limit("200/hour")
 async def get_notifications(
@@ -64,15 +90,7 @@ async def get_notifications(
     
     notifications = query.order_by(desc(Notification.created_at)).limit(limit).all()
     
-    # Parse extra_data JSON strings
-    for notif in notifications:
-        if notif.extra_data:
-            try:
-                notif.extra_data = json.loads(notif.extra_data)
-            except (json.JSONDecodeError, TypeError):
-                notif.extra_data = None
-    
-    return notifications
+    return [_to_notification_response(notification) for notification in notifications]
 
 
 @router.get("/unread-count")
@@ -166,5 +184,4 @@ async def delete_notification(
     db.commit()
     
     return {"message": "Notification deleted"}
-
 

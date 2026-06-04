@@ -43,6 +43,8 @@ const PricePrediction = () => {
     { value: "potato", label: "Potato (आलू)", icon: "🥔" },
     { value: "cotton", label: "Cotton (कपास)", icon: "🌱" },
     { value: "sugarcane", label: "Sugarcane (गन्ना)", icon: "🎋" },
+    { value: "maize", label: "Maize (मक्का)", icon: "🌽" },
+    { value: "soyabean", label: "Soybean (सोयाबीन)", icon: "🫘" },
   ];
 
   const fetchPredictions = useCallback(async () => {

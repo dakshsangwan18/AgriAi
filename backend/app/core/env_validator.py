@@ -22,13 +22,13 @@ class EnvironmentValidator:
             'description': 'PostgreSQL database connection string',
             'example': 'postgresql://user:password@localhost:5432/agridb'
         },
-        'GEMINI_API_KEY': {
-            'description': 'Google Gemini API key for AI features',
-            'example': 'Get from https://makersuite.google.com/app/apikey'
-        },
     }
     
     OPTIONAL_VARS = {
+        'GEMINI_API_KEY': {
+            'description': 'Google Gemini API key for LLM-powered agent explanations',
+            'fallback': 'Agent will use rule-based explanations'
+        },
         'OPENWEATHER_API_KEY': {
             'description': 'OpenWeather API for real weather data',
             'fallback': 'Will use mock weather data'

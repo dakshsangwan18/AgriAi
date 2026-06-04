@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # External API Keys
 
-    OPENWEATHER_API_KEY: str
+    OPENWEATHER_API_KEY: Optional[str] = None
     DATA_GOV_IN_API_KEY: Optional[str] = None
     
     # Database

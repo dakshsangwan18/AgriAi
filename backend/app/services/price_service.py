@@ -13,7 +13,16 @@ PRICE_LIST_CACHE_TTL = 3600  # 1 hour for price lists
 
 class PriceService:
     # Crop list for reference
-    CROPS = ["wheat", "rice", "tomato", "onion", "potato", "cotton", "sugarcane", "soyabean"]
+    CROPS = ["wheat", "rice", "tomato", "onion", "potato", "cotton", "sugarcane", "maize", "soyabean"]
+    CROP_ALIASES = {
+        "corn": "maize",
+        "soybean": "soyabean",
+    }
+
+    @staticmethod
+    def normalize_crop(crop: str) -> str:
+        crop_normalized = (crop or "").strip().lower()
+        return PriceService.CROP_ALIASES.get(crop_normalized, crop_normalized)
     
     @staticmethod
     def predict_prices(crop: str, days_ahead: int = 30, use_real_data: bool = True) -> Dict:

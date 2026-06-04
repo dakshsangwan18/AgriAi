@@ -18,6 +18,10 @@ class YieldService:
     }
     
     SOIL_TYPES = ["loamy", "clay", "sandy", "black", "red", "alluvial"]
+    CROP_ALIASES = {
+        "corn": "maize",
+        "soyabean": "soybean",
+    }
     
     def __init__(self):
       self.label_encoders = {}
@@ -91,13 +95,14 @@ class YieldService:
     def predict_yield(self, crop: str, area: float, rainfall: float, temperature: float,
                      soil_ph: float, nitrogen: float, phosphorus: float, potassium: float) -> Dict:
         try:
-            if crop.lower() not in self.CROP_DATA:
+            crop_key = self.CROP_ALIASES.get(crop.lower(), crop.lower())
+            if crop_key not in self.CROP_DATA:
                 return {"error": f"Crop '{crop}' not supported. Supported crops: {', '.join(self.CROP_DATA.keys())}"}
             
-            crop_info = self.CROP_DATA[crop.lower()]
+            crop_info = self.CROP_DATA[crop_key]
             
             # Encode crop
-            crop_encoded = self.label_encoders['crop'].transform([crop.lower()])[0]
+            crop_encoded = self.label_encoders['crop'].transform([crop_key])[0]
             
             # Prepare features
             features = np.array([[crop_encoded, area, rainfall, temperature, soil_ph,
@@ -109,16 +114,16 @@ class YieldService:
             
             # Calculate confidence and recommendations
             recommendations = self._generate_recommendations(
-                crop.lower(), temperature, rainfall, soil_ph, nitrogen, phosphorus, potassium
+                crop_key, temperature, rainfall, soil_ph, nitrogen, phosphorus, potassium
             )
             
             # Calculate optimal vs actual
             optimal_conditions = self._check_optimal_conditions(
-                crop.lower(), temperature, rainfall, soil_ph
+                crop_key, temperature, rainfall, soil_ph
             )
             
             return {
-                "crop": crop.lower(),
+                "crop": crop_key,
                 "area_hectares": round(area, 2),
                 "predicted_total_yield": round(predicted_yield, 2),
                 "predicted_yield_per_hectare": round(yield_per_hectare, 2),

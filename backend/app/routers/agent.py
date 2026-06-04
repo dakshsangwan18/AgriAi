@@ -65,6 +65,7 @@ async def analyze_crop(
             city=request.city,
             user_preferences=user_prefs,
             days_ahead=request.days,
+            user_id=current_user.id,
         )
 
     except Exception as e:

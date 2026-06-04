@@ -294,6 +294,8 @@ export const AlertsPage: React.FC = () => {
                     <option value="potato">Potato</option>
                     <option value="cotton">Cotton</option>
                     <option value="sugarcane">Sugarcane</option>
+                    <option value="maize">Maize</option>
+                    <option value="soyabean">Soybean</option>
                   </select>
                 </div>
 

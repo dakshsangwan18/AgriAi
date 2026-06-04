@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -18,9 +18,9 @@ class User(Base):
     notification_enabled = Column(Boolean, default=True)
     
     user_type = Column(String, default="FARMER")
-    farm_size = Column(Integer, nullable=True)
-    farm_location_lat = Column(Integer, nullable=True)
-    farm_location_lon = Column(Integer, nullable=True)
+    farm_size = Column(Float, nullable=True)
+    farm_location_lat = Column(Float, nullable=True)
+    farm_location_lon = Column(Float, nullable=True)
     language_preference = Column(String, default="en")
     sms_enabled = Column(Boolean, default=False)
     whatsapp_enabled = Column(Boolean, default=False)
@@ -49,6 +49,7 @@ class User(Base):
     price_alerts = relationship("PriceAlert", back_populates="user", cascade="all, delete-orphan")
     user_crops = relationship("UserCrop", back_populates="user", cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    agent_analyses = relationship("AgentAnalysis", back_populates="user", passive_deletes=True)
     
     def __repr__(self):
         return f"<User(email={self.email}, name={self.full_name})>"

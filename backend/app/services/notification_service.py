@@ -2,7 +2,6 @@
 import logging
 from typing import Dict
 import os
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +63,12 @@ class NotificationService:
                     title=f" {alert.get('crop', 'Crop').upper()} - {action.replace('_', ' ')}",
                     message=message,
                     priority=priority,
-                    extra_data=json.dumps({
+                    extra_data={
                         'crop': alert.get('crop'),
                         'action': action,
                         'confidence': alert.get('confidence'),
                         'expected_price': alert.get('expected_price')
-                    })
+                    }
                 )
                 
                 db.add(notification)

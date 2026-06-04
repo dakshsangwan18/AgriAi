@@ -11,7 +11,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 def _validate_crop(crop: str) -> str:
-    crop_normalized = (crop or "").strip().lower()
+    crop_normalized = PriceService.normalize_crop(crop)
     supported = {c.lower() for c in PriceService.CROPS}
     if crop_normalized not in supported:
         raise HTTPException(
