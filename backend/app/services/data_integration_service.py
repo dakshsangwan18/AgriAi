@@ -302,35 +302,47 @@ class DataIntegrationService:
     
     def _store_in_database(self, df: pd.DataFrame):
         with get_db_session() as db:
-            stored_count = 0
+            if df.empty:
+                return
+
+            crops = df['crop'].unique().tolist()
+            min_date = df['date'].min().date()
+            max_date = df['date'].max().date()
+
+            existing = db.query(
+                PriceData.crop, PriceData.mandi, PriceData.date
+            ).filter(
+                PriceData.crop.in_(crops),
+                PriceData.date >= min_date,
+                PriceData.date <= max_date,
+            ).all()
+
+            existing_keys = {(r.crop, r.mandi, r.date) for r in existing}
+
+            new_records = []
             skipped_count = 0
-            
+
             for _, row in df.iterrows():
-                # Check if record exists
-                existing = db.query(PriceData).filter(
-                    PriceData.crop == row['crop'],
-                    PriceData.mandi == row['mandi'],
-                    PriceData.date == row['date'].date()
-                ).first()
-                
-                if not existing:
-                    record = PriceData(
-                        crop=row['crop'],
-                        mandi=row['mandi'],
-                        state=row['state'],
-                        date=row['date'].date(),
-                        modal_price=float(row['price']),
-                        min_price=float(row['min_price']) if pd.notna(row['min_price']) else float(row['price']) * 0.95,
-                        max_price=float(row['max_price']) if pd.notna(row['max_price']) else float(row['price']) * 1.05,
-                        variety=row['variety']
-                    )
-                    db.add(record)
-                    stored_count += 1
-                else:
+                key = (row['crop'], row['mandi'], row['date'].date())
+                if key in existing_keys:
                     skipped_count += 1
-            
-            # Auto-commits when context exits
-            logger.info(f"[OK] Stored {stored_count} new records in database (skipped {skipped_count} duplicates)")
+                    continue
+
+                new_records.append(PriceData(
+                    crop=row['crop'],
+                    mandi=row['mandi'],
+                    state=row['state'],
+                    date=row['date'].date(),
+                    modal_price=float(row['price']),
+                    min_price=float(row['min_price']) if pd.notna(row['min_price']) else float(row['price']) * 0.95,
+                    max_price=float(row['max_price']) if pd.notna(row['max_price']) else float(row['price']) * 1.05,
+                    variety=row['variety']
+                ))
+
+            if new_records:
+                db.bulk_save_objects(new_records)
+
+            logger.info(f"[OK] Stored {len(new_records)} new records in database (skipped {skipped_count} duplicates)")
 
 
 # Singleton instance
