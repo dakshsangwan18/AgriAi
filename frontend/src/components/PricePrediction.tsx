@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -37,19 +37,24 @@ const PricePrediction = () => {
   const [error, setError] = useState("");
 
   const crops = CROPS;
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchPredictions = useCallback(async () => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError("");
 
     try {
-      // Fetch APIs independently so one failure doesn't block others
       const [predResult, marketResult] = await Promise.allSettled([
         priceAPI.getPrediction(selectedCrop, predictionDays),
         priceAPI.compareMarkets(selectedCrop),
       ]);
 
-      // Handle prediction result (main data)
+      if (controller.signal.aborted) return;
+
       if (predResult.status === "fulfilled") {
         setPrediction(predResult.value);
       } else {
@@ -61,7 +66,6 @@ const PricePrediction = () => {
         return;
       }
 
-      // Handle market comparison (optional)
       if (marketResult.status === "fulfilled") {
         setMarketComparison(marketResult.value);
       } else {
@@ -71,16 +75,19 @@ const PricePrediction = () => {
         setMarketComparison(null);
       }
     } catch (err) {
+      if (controller.signal.aborted) return;
       setError("Failed to fetch price data. Please try again.");
       logger.error("Failed to fetch price data", { error: err });
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [selectedCrop, predictionDays]);
 
-  // ✅ Clean useEffect
   useEffect(() => {
     fetchPredictions();
+    return () => { abortControllerRef.current?.abort(); };
   }, [fetchPredictions]);
 
   // ✅ Safely prepare chart data
