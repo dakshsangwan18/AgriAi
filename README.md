@@ -139,11 +139,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 Do not commit the `.env` file to version control.
-Use a `.env.example` file for reference instead.
-
-Environment separation (examples):
-- Backend: `.env.development.example`, `.env.staging.example`, `.env.production.example`
-- Frontend: `.env.development.example`, `.env.staging.example`, `.env.production.example`
+Copy [backend/.env.example](backend/.env.example) and [frontend/.env.example](frontend/.env.example) as your starting point.
 
 To generate a secure secret key:
 
