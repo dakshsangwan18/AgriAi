@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import { logger } from "../utils/logger";
+import { useToast } from "../components/ui/Toast";
 
 interface PriceAlert {
   id: string;
@@ -29,6 +30,8 @@ export const AlertsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [success, setSuccess] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     crop: "wheat",
     city: "Delhi",
@@ -102,13 +105,21 @@ export const AlertsPage: React.FC = () => {
   };
 
   const deleteAlert = async (id: string) => {
-    if (!confirm("Delete this alert?")) return;
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      await apiClient.delete(`/alerts/${id}`);
+      await apiClient.delete(`/alerts/${deleteId}`);
       fetchAlerts();
+      showToast("Alert deleted successfully", "success");
     } catch (error) {
       logger.error("Error deleting alert", error);
+      showToast("Failed to delete alert", "error");
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -424,6 +435,29 @@ export const AlertsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Alert?</h3>
+            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

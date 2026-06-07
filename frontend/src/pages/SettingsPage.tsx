@@ -13,6 +13,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { useToast } from "../components/ui/Toast";
 
 type Tab = "profile" | "notifications" | "account" | "billing" | "api";
 
@@ -21,6 +22,7 @@ export const SettingsPage: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { showToast } = useToast();
 
   // Profile state
   const [profile, setProfile] = useState({
@@ -83,19 +85,19 @@ export const SettingsPage: React.FC = () => {
   ]);
 
   const handleSaveProfile = () => {
-    alert("Profile saved successfully!");
+    showToast("Profile saved successfully!", "success");
   };
 
   const handleSaveNotifications = () => {
-    alert("Notification settings saved!");
+    showToast("Notification settings saved!", "success");
   };
 
   const handleChangePassword = () => {
     if (newPassword !== confirmPassword) {
-      alert("Passwords don't match!");
+      showToast("Passwords don't match!", "error");
       return;
     }
-    alert("Password changed successfully!");
+    showToast("Password changed successfully!", "success");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -104,7 +106,7 @@ export const SettingsPage: React.FC = () => {
   const handleDeleteAccount = () => {
     setIsDeleting(true);
     setTimeout(() => {
-      alert("Account deleted. Redirecting...");
+      showToast("Account deleted. Redirecting...", "success");
       setIsDeleting(false);
       setShowDeleteDialog(false);
     }, 2000);

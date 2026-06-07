@@ -23,6 +23,7 @@ import {
 import { agentAPI, priceAPI } from "../services/api";
 import type { AgentAnalysis } from "../services/api";
 import { CROPS, CITIES } from "../config/constants";
+import { useToast } from "./ui/Toast";
 
 interface HistoryItem {
   id: string;
@@ -66,6 +67,7 @@ export default function AgentDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const { showToast } = useToast();
 
   const crops = CROPS;
 
@@ -149,7 +151,7 @@ export default function AgentDashboard() {
       navigator.share({ title: "AgriAI Analysis", text: shareText }).catch(() => { });
     } else {
       navigator.clipboard.writeText(shareText);
-      alert("Copied to clipboard!");
+      showToast("Copied to clipboard!", "success");
     }
   };
 

@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App.tsx";
 import { logResourceTiming } from "./hooks/useWebVitals";
 import * as Sentry from "@sentry/react";
+import { ToastProvider } from "./components/ui/Toast";
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 if (sentryDsn) {
@@ -17,7 +18,9 @@ if (sentryDsn) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </StrictMode>
 );
 
