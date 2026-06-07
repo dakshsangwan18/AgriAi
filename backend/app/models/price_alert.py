@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, Integer
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -10,7 +9,7 @@ from app.database import Base
 class PriceAlert(Base):
     __tablename__ = "price_alerts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     crop = Column(String(50), nullable=False, index=True)
     city = Column(String(100), nullable=False)
