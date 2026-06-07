@@ -150,7 +150,7 @@ class CacheManager:
         
         try:
             search_pattern = self._make_key(namespace, pattern)
-            keys = self._client.keys(search_pattern)
+            keys = list(self._client.scan_iter(match=search_pattern, count=100))
             
             if keys:
                 deleted = self._client.delete(*keys)
