@@ -89,25 +89,6 @@ export const LandingPage: React.FC = () => {
       >
         Skip to main content
       </a>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          
-          * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          }
-          
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fadeIn {
-            animation: fadeIn 0.8s ease-out forwards;
-          }
-        `,
-        }}
-      />
       <nav
         className={`fixed top-0 w-full bg-white border-b border-[#DDE2E0] z-50 transition-all duration-300 ${isScrolled ? "shadow-[0_2px_8px_rgba(0,0,0,0.05)]" : ""
           }`}
