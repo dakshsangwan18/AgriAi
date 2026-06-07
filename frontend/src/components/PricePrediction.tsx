@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { priceAPI } from "../services/api";
 import { logger } from "../utils/logger";
+import { CROPS } from "../config/constants";
 import type {
   PricePrediction as PricePredictionType,
   MarketComparisonData,
@@ -35,17 +36,7 @@ const PricePrediction = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const crops = [
-    { value: "wheat", label: "Wheat (गेहूं)", icon: "🌾" },
-    { value: "rice", label: "Rice (चावल)", icon: "🍚" },
-    { value: "tomato", label: "Tomato (टमाटर)", icon: "🍅" },
-    { value: "onion", label: "Onion (प्याज)", icon: "🧅" },
-    { value: "potato", label: "Potato (आलू)", icon: "🥔" },
-    { value: "cotton", label: "Cotton (कपास)", icon: "🌱" },
-    { value: "sugarcane", label: "Sugarcane (गन्ना)", icon: "🎋" },
-    { value: "maize", label: "Maize (मक्का)", icon: "🌽" },
-    { value: "soyabean", label: "Soybean (सोयाबीन)", icon: "🫘" },
-  ];
+  const crops = CROPS;
 
   const fetchPredictions = useCallback(async () => {
     setLoading(true);

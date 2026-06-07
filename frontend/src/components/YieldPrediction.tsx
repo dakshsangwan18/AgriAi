@@ -10,6 +10,7 @@ import { yieldAPI } from "../services/api";
 import type { YieldPredictionResponse } from "../services/api";
 import type { AxiosError } from "axios";
 import { logger } from "../utils/logger";
+import { CROPS } from "../config/constants";
 
 const YieldPrediction = () => {
   const [formData, setFormData] = useState({
@@ -29,16 +30,7 @@ const YieldPrediction = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const crops = [
-    { value: "wheat", label: "Wheat (गेहूं)", icon: "🌾" },
-    { value: "rice", label: "Rice (चावल)", icon: "🍚" },
-    { value: "cotton", label: "Cotton (कपास)", icon: "🌱" },
-    { value: "sugarcane", label: "Sugarcane (गन्ना)", icon: "🎋" },
-    { value: "maize", label: "Maize (मक्का)", icon: "🌽" },
-    { value: "soyabean", label: "Soybean (सोयाबीन)", icon: "🫘" },
-    { value: "potato", label: "Potato (आलू)", icon: "🥔" },
-    { value: "tomato", label: "Tomato (टमाटर)", icon: "🍅" },
-  ];
+  const crops = CROPS;
 
   const handleInputChange = (field: string, value: number | string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

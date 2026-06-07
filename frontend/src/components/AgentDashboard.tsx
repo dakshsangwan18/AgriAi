@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import { agentAPI, priceAPI } from "../services/api";
 import type { AgentAnalysis } from "../services/api";
+import { CROPS, CITIES } from "../config/constants";
 
 interface HistoryItem {
   id: string;
@@ -66,19 +67,9 @@ export default function AgentDashboard() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
-  const crops = [
-    { value: "wheat", label: "Wheat", icon: "🌾" },
-    { value: "rice", label: "Rice", icon: "🍚" },
-    { value: "tomato", label: "Tomato", icon: "🍅" },
-    { value: "onion", label: "Onion", icon: "🧅" },
-    { value: "potato", label: "Potato", icon: "🥔" },
-    { value: "maize", label: "Maize", icon: "🌽" },
-    { value: "soyabean", label: "Soybean", icon: "🫘" },
-    { value: "sugarcane", label: "Sugarcane", icon: "🎋" },
-    { value: "cotton", label: "Cotton", icon: "🌱" },
-  ];
+  const crops = CROPS;
 
-  const cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata", "Pune", "Hyderabad", "Jaipur", "Lucknow", "Ahmedabad"];
+  const cities = CITIES;
 
   const dayOptions = [
     { value: 7, label: "7 Days" },
