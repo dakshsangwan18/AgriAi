@@ -17,6 +17,7 @@ from app.models.audit_log import AuditLog
 from app.api.v1.endpoints.auth import get_current_active_user
 from app.core.cache import cache_manager
 from app.core.audit import log_admin_action
+from app.core.dependencies import verify_admin
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -66,16 +67,6 @@ class AuditLogResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-def verify_admin(current_user: User = Depends(get_current_active_user)):
-    
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="Admin privileges required"
-        )
-    return current_user
 
 
 @router.get("/stats", response_model=PlatformStats)

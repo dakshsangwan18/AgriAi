@@ -12,6 +12,7 @@ from app.models.agent_analysis import AgentAnalysis
 from app.models.user import User
 from app.services.agent_service import smart_agent
 from app.services.scheduler_service import scheduler_service
+from app.core.dependencies import verify_admin
 
 router = APIRouter(prefix="/agent", tags=["Agent"])
 
@@ -36,18 +37,6 @@ class AnalysisRequest(BaseModel):
         ge=1,
         le=180
     )
-
-
-def require_admin(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-) -> User:
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="Admin privileges required"
-        )
-
-    return current_user
 
 
 @router.post("/analyze")
@@ -96,7 +85,7 @@ async def analyze_crop(
 
 @router.get("/status")
 async def get_agent_status(
-    admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(verify_admin)],
     db: Session = Depends(get_db),
 ):
     try:
@@ -150,7 +139,7 @@ async def get_agent_status(
 
 @router.post("/trigger-monitoring")
 async def trigger_monitoring(
-    admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(verify_admin)],
 ):
     try:
         scheduler_service.run_now("daily_monitoring")
@@ -174,7 +163,7 @@ async def trigger_monitoring(
 
 @router.get("/health")
 async def health_check(
-    admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(verify_admin)],
 ):
     return {
         "agent": "healthy",
@@ -188,7 +177,7 @@ async def health_check(
 
 @router.get("/history")
 async def get_analysis_history(
-    admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(verify_admin)],
     db: Session = Depends(get_db),
     limit: int = 10,
     crop: Optional[str] = None,

@@ -4,14 +4,9 @@ from typing import Dict, Any
 from app.database import get_pool_status
 from app.api.v1.endpoints.auth import get_current_active_user
 from app.models.user import User
+from app.core.dependencies import verify_admin
 
 router = APIRouter(tags=["Health"])
-
-
-def require_admin(current_user: User = Depends(get_current_active_user)) -> User:
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Admin privileges required")
-    return current_user
 
 
 @router.get("/health")
@@ -24,7 +19,7 @@ async def health_check():
 
 
 @router.get("/health/db-pool")
-async def database_pool_health(admin: User = Depends(require_admin)):
+async def database_pool_health(admin: User = Depends(verify_admin)):
     
     pool_status = get_pool_status()
     
@@ -70,7 +65,7 @@ async def database_pool_health(admin: User = Depends(require_admin)):
 
 
 @router.get("/health/ready")
-async def readiness_check(admin: User = Depends(require_admin)):
+async def readiness_check(admin: User = Depends(verify_admin)):
     
     try:
         # Check if we can get pool status (implies DB is accessible)
