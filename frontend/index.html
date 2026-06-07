@@ -12,6 +12,7 @@
       href="/images/optimized/image-1920w.webp"
       as="image"
       type="image/webp"
+      fetchpriority="high"
     />
 
     <!-- SEO Meta Tags -->
@@ -34,6 +35,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://agriai.com/" />
+    <meta property="og:site_name" content="AgriAI" />
     <meta
       property="og:title"
       content="AgriAI - AI-Powered Agriculture Platform"
@@ -74,6 +76,8 @@
         "description": "AI-Powered Agriculture Platform for Smart Farming",
         "url": "https://agriai.com",
         "logo": "https://agriai.com/logo.png",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
         "contactPoint": {
           "@type": "ContactPoint",
           "contactType": "Customer Support",
@@ -82,58 +86,12 @@
         "sameAs": [
           "https://twitter.com/agriai",
           "https://linkedin.com/company/agriai"
-        ]
-      }
-    </script>
-    <meta
-      property="og:image"
-      content="https://agriai.com/images/og-image.jpg"
-    />
-    <meta property="og:site_name" content="AgriAI" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://agriai.com/" />
-    <meta
-      name="twitter:title"
-      content="AgriAI - AI-Powered Agriculture Platform"
-    />
-    <meta
-      name="twitter:description"
-      content="Deploy intelligent agricultural features in weeks. Trusted by Fortune 500 agribusinesses."
-    />
-    <meta
-      name="twitter:image"
-      content="https://agriai.com/images/twitter-card.jpg"
-    />
-
-    <!-- Preload Critical Resources -->
-    <link
-      rel="preload"
-      href="/images/image.png"
-      as="image"
-      fetchpriority="high"
-    />
-
-    <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "AgriAI Platform",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
+        ],
         "aggregateRating": {
           "@type": "AggregateRating",
           "ratingValue": "4.8",
           "ratingCount": "1247"
-        },
-        "description": "AI-powered agriculture platform for smart farming, crop prediction, and yield optimization."
+        }
       }
     </script>
   </head>
