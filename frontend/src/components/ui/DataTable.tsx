@@ -55,8 +55,14 @@ export function DataTable<T extends Record<string, unknown>>({
       const bValue = b[sortKey];
 
       if (aValue === bValue) return 0;
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
 
-      const comparison = String(aValue) > String(bValue) ? 1 : -1;
+      const isNumeric = typeof aValue === "number" && typeof bValue === "number";
+      const comparison = isNumeric
+        ? (aValue as number) - (bValue as number)
+        : String(aValue).localeCompare(String(bValue));
+
       return sortOrder === "asc" ? comparison : -comparison;
     })
     : filteredData;
