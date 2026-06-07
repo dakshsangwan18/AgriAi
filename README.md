@@ -4,6 +4,14 @@ AI-powered agriculture platform for Indian farmers — crop advisory, weather in
 
 **Features:** AI crop advisor · weather dashboard · price predictions · yield forecasting · price alerts · AI chatbot
 
+## How It Works
+
+1. **Data Collection** — Real market prices from [Data.gov.in](https://data.gov.in), weather from [OpenWeatherMap](https://openweathermap.org), with synthetic fallback
+2. **ML Models** — Linear regression for price prediction, Random Forest for yield estimation
+3. **Decision Engine** — Rule-based expert system analyzes price trends, weather impact, and market volatility to recommend SELL / WAIT / HOLD
+4. **AI Insights** — Gemini generates farmer-friendly explanations in Hinglish; Groq/Llama 3 powers the chatbot
+5. **Scheduled Monitoring** — Daily crop analysis at 6 AM, price data collection at 6 PM, hourly alert checks
+
 ## Quick Start (Docker)
 
 ```bash
@@ -108,6 +116,34 @@ Key production settings: `ENVIRONMENT=production`, strong `SECRET_KEY`, `CORS_OR
 | AI | Google Gemini (advisor), Groq/Llama 3 (chatbot) |
 | Data | OpenWeatherMap, Data.gov.in |
 | Infra | Docker Compose, Nginx, Sentry |
+
+## Project Structure
+
+```
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/endpoints/    # REST API routes (auth)
+│   │   ├── core/                # config, security, cache, middleware
+│   │   ├── models/              # SQLAlchemy models
+│   │   ├── routers/             # API routers (agent, prices, weather, etc.)
+│   │   ├── schemas/             # Pydantic schemas
+│   │   └── services/            # Business logic (AI agent, decision engine, ML)
+│   ├── alembic/                 # Database migrations
+│   ├── tests/                   # pytest test suite
+│   └── scripts/                 # Superuser bootstrap
+├── frontend/
+│   ├── src/
+│   │   ├── components/          # UI components (AgentDashboard, ChatBot, etc.)
+│   │   ├── pages/               # Route pages (Landing, Login, Settings, etc.)
+│   │   ├── services/            # API client + typed endpoints
+│   │   ├── config/              # Constants + API base URL
+│   │   └── hooks/               # Custom React hooks
+│   ├── nginx.conf.template      # Frontend nginx (Render deployment)
+│   └── start.sh                 # Runtime nginx config generator
+├── nginx/nginx.conf             # Reverse proxy with TLS + CSP
+├── scripts/                     # backup, restore, migrations
+└── docker-compose*.yml          # Dev / prod / proxy compose files
+```
 
 ## License
 
