@@ -2,6 +2,8 @@
 
 AI-powered agriculture platform for Indian farmers — crop advisory, weather intelligence, market price predictions, and yield forecasting.
 
+**Features:** AI crop advisor · weather dashboard · price predictions · yield forecasting · price alerts · AI chatbot
+
 ## Quick Start (Docker)
 
 ```bash
@@ -10,6 +12,7 @@ docker compose up -d
 ```
 
 Backend at `http://localhost:8000`, frontend at `http://localhost`.
+API docs at `http://localhost:8000/docs`.
 
 ## Local Development
 
@@ -53,6 +56,19 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```bash
 cd backend && pytest
 cd frontend && npm test
+```
+
+### Create Superuser
+
+```bash
+SUPERUSER_EMAIL=admin@example.com SUPERUSER_PASSWORD=strong-password \
+  python backend/scripts/create_superuser.py
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
 ```
 
 ## Production Deployment
