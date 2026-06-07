@@ -1,250 +1,91 @@
-# AgriAI Platform
+# AgriAI
 
-AgriAI is a smart agriculture platform designed to help Indian farmers make better decisions using AI-powered insights, weather data, and market price predictions.
+AI-powered agriculture platform for Indian farmers — crop advisory, weather intelligence, market price predictions, and yield forecasting.
 
-The platform combines real-time data with machine learning models to support crop planning, pricing decisions, and yield forecasting.
+## Quick Start (Docker)
 
-# Features
-
-AI Crop Advisor
-Provides intelligent sell or hold recommendations based on market trends and forecasts.
-
-Weather Dashboard
-Displays real-time weather data with insights tailored for farming decisions.
-
-Market Price Predictions
-Shows 7-day price forecasts for major crops using historical and live data.
-
-Yield Forecasting
-Estimates expected harvest output based on soil, weather, and crop data.
-
-Smart Alerts
-Notifies users when market prices reach predefined targets.
-
-AI Chatbot
-Allows farmers to ask agriculture-related questions at any time.
-
-# Tech Stack
-
-Backend
-FastAPI, PostgreSQL, SQLAlchemy, Pydantic
-
-Frontend
-React, TypeScript, Vite, TailwindCSS
-
-AI Services
-Google Gemini, Groq
-
-External APIs
-OpenWeatherMap, Data.gov.in
-
-# Project Structure
-
-```
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── models/
-│   │   └── services/
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   └── pages/
-│   └── Dockerfile
-├── docker-compose.yml
-└── docker-compose.prod.yml
+```bash
+cp .env.example .env          # fill in your API keys
+docker compose up -d
 ```
 
-# Requirements
+Backend at `http://localhost:8000`, frontend at `http://localhost`.
 
-For local development without Docker:
+## Local Development
 
-* Python 3.11 or higher
-* Node.js 20 or higher
-* PostgreSQL 15 or higher
+**Backend** (Python 3.11+, PostgreSQL 15+)
 
-# Local Development Setup
-
-# Backend
-
-```
+```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env          # fill in your keys
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-The backend server will run at [http://localhost:8000](http://localhost:8000)
+**Frontend** (Node.js 20+)
 
-# Frontend
-
-```
+```bash
 cd frontend
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-The frontend application will run at [http://localhost:5173](http://localhost:5173)
+## Configuration
 
-# Docker Setup
+Copy the `.env.example` file relevant to your setup:
 
-Docker is the recommended way to run the full stack.
+| File | Purpose |
+|---|---|
+| `.env.example` | Docker Compose variables |
+| `backend/.env.example` | Backend app settings (all 33 variables documented) |
+| `frontend/.env.example` | Frontend build-time variables |
 
-# Development
-
-```
-docker-compose up -d
-```
-
-# Production
-
-```
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-The production setup disables hot reload and is intended to be used behind a reverse proxy with HTTPS enabled.
-TLS termination is not bundled in the compose file. Use your cloud load balancer or a dedicated reverse proxy.
-
-Optional: Nginx reverse proxy in Docker (HTTP/TLS termination)
-
-```
-docker-compose -f docker-compose.prod.yml -f docker-compose.proxy.yml up -d
-```
-
-If you enable the proxy profile, place certs in `nginx/ssl/` and update [nginx/nginx.conf](nginx/nginx.conf) with your TLS settings.
-Default paths:
-- `nginx/ssl/fullchain.pem`
-- `nginx/ssl/privkey.pem`
-
-# Configuration
-
-Create a `.env` file inside the backend directory.
-
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/agri_ai
-SECRET_KEY=replace-with-a-secure-secret
-
-GEMINI_API_KEY=your-key
-GROQ_API_KEY=your-key
-
-OPENWEATHER_API_KEY=your-key
-
-GOOGLE_CLIENT_ID=your-id
-GOOGLE_CLIENT_SECRET=your-secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
-FRONTEND_URL=http://localhost:5173
-```
-
-Do not commit the `.env` file to version control.
-Copy [backend/.env.example](backend/.env.example) and [frontend/.env.example](frontend/.env.example) as your starting point.
-
-To generate a secure secret key:
-
-```
+Generate a secure `SECRET_KEY`:
+```bash
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-# Security Hardening Notes
+## Testing
 
-Secrets and rotation:
-- Never commit real secrets. If any secret was exposed, rotate it immediately.
-- Keys to rotate if exposed: `DATABASE_URL`, `SECRET_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENWEATHER_API_KEY`, `DATA_GOV_IN_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SENDGRID_API_KEY`, `TWILIO_AUTH_TOKEN`.
-- Use [backend/.env.example](backend/.env.example) as the only committed reference.
-
-Environment separation:
-- Set `ENVIRONMENT` to `development`, `staging`, or `production`.
-- For production, define `CORS_ORIGINS` as a comma-separated allowlist (e.g., `https://app.example.com,https://admin.example.com`).
-- Set `FRONTEND_URL` for OAuth redirects.
-
-RBAC and admin access:
-- Admin and agent operational endpoints require a superuser account.
-- Create a superuser via [backend/scripts/create_superuser.py](backend/scripts/create_superuser.py):
-
-```
-SUPERUSER_EMAIL=admin@example.com SUPERUSER_PASSWORD=strong-password \
-	python backend/scripts/create_superuser.py
+```bash
+cd backend && pytest
+cd frontend && npm test
 ```
 
-Logging and artifacts:
-- Runtime logs are written under `backend/logs/` and are gitignored.
-- Do not store secrets in logs or build artifacts.
+## Production Deployment
 
-Auth cookies:
-- Access/refresh tokens are stored in httpOnly cookies; the frontend never stores tokens in localStorage.
-- CSRF protection is enforced for state-changing requests using `X-CSRF-Token`.
-
-Operational security:
-- Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR to prevent spoofed client IPs.
-- Anonymous client error logging is disabled in production unless `ALLOW_ANON_ERRORS=true`.
-
-Deployment protections:
-- Edge rate limiting is configured in Nginx (`limit_req_zone`).
-- Request size limits are enforced by `MAX_REQUEST_SIZE_MB`.
-
-Content Security Policy (CSP):
-- CSP is enforced at the reverse proxy/frontend layer with strict defaults.
-- Inline JSON-LD scripts in [frontend/index.html](frontend/index.html) are allowed via SHA-256 hashes.
-- The inline style block in [frontend/src/pages/LandingPage.tsx](frontend/src/pages/LandingPage.tsx) is allowed via a SHA-256 hash.
-- If you modify those inline blocks, update the CSP hashes in [nginx/nginx.conf](nginx/nginx.conf) and [frontend/start.sh](frontend/start.sh).
-- Inline style attributes are allowed via `style-src-attr 'unsafe-inline'` because the UI uses inline styles.
-
-# Database Notes
-
-When using Docker, PostgreSQL is managed automatically by Docker Compose.
-
-For local development without Docker, ensure PostgreSQL is running and accessible using the credentials provided in the environment variables.
-
-# Running Tests
-
-Backend tests:
-
-```
-cd backend
-pytest
+```bash
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Frontend tests:
-
-```
-cd frontend
-npm test
+Or with TLS termination:
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.proxy.yml up -d
 ```
 
-# Deployment Notes
+Key production settings: `ENVIRONMENT=production`, strong `SECRET_KEY`, `CORS_ORIGINS` allowlist, `COOKIE_SECURE=true`, `FORWARDED_ALLOW_IPS` set to proxy IPs.
 
-* Use the production Docker Compose file
-* Set environment variables securely on the server
-* Run the application behind Nginx or a cloud load balancer
-* Ensure HTTPS is enabled
-* Use strong secrets and production API keys
+### Scripts
 
-Automated migrations:
-- Use `scripts/run-migrations.sh` during deploy to ensure schema is up to date.
+| Script | Purpose |
+|---|---|
+| `scripts/run-migrations.sh` | Apply database migrations |
+| `scripts/backup-db.sh` | Backup PostgreSQL |
+| `scripts/restore-db.sh <file>` | Restore from backup |
 
-Backups:
-- Create a backup: `scripts/backup-db.sh`
-- Restore a backup: `scripts/restore-db.sh <backup.sql.gz>`
+## Tech Stack
 
-Observability:
-- Backend supports Sentry via `SENTRY_DSN`.
-- Frontend supports Sentry via `VITE_SENTRY_DSN`.
-- Set sample rates with `SENTRY_TRACES_SAMPLE_RATE` and `VITE_SENTRY_TRACES_SAMPLE_RATE`.
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI, PostgreSQL, SQLAlchemy, Redis |
+| Frontend | React 19, TypeScript, Vite, TailwindCSS |
+| AI | Google Gemini (advisor), Groq/Llama 3 (chatbot) |
+| Data | OpenWeatherMap, Data.gov.in |
+| Infra | Docker Compose, Nginx, Sentry |
 
-Deployment checklist:
-- Set all required environment variables for backend and frontend.
-- Rotate secrets and set `SECRET_KEY` to a strong value.
-- Configure cookie domain and `COOKIE_SAMESITE`/`COOKIE_SECURE` for production.
-- Set `FORWARDED_ALLOW_IPS` to your reverse proxy IPs/CIDR.
-- Run migrations (`scripts/run-migrations.sh`).
-- Confirm Redis and Postgres health checks pass.
-- Verify CSP hashes after any inline HTML/style changes.
-- Validate Sentry DSN and environment metadata.
-- Confirm HTTPS + TLS certs are installed.
-- Run a smoke test: login, refresh token flow, and key API routes.
+## License
 
-# License
-
-MIT License
+MIT
