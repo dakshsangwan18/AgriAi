@@ -100,9 +100,18 @@ if not cors_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True,  # Required for authenticated requests
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],  # Allow all headers
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "X-CSRF-Token",
+        "X-Request-ID",
+        "Cache-Control",
+    ],
     expose_headers=["X-Request-ID", "X-Response-Time"],
 )
 
