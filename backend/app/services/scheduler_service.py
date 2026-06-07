@@ -82,12 +82,8 @@ class SchedulerService:
         try:
             from app.services.alert_service import alert_service
             import asyncio
-            
-            # Run async alert check
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(alert_service.check_all_alerts())
-            loop.close()
+
+            result = asyncio.run(alert_service.check_all_alerts())
             
             logger.info(f"[OK] Alert check: {result['triggered']}/{result['checked']} triggered")
             
