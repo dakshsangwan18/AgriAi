@@ -5,19 +5,22 @@ from app.core.config import settings
 
 
 class CsrfProtectionMiddleware(BaseHTTPMiddleware):
-    EXEMPT_PREFIXES = (
+    EXEMPT_PATHS = {
         "/api/v1/auth/login",
         "/api/v1/auth/register",
         "/api/v1/auth/refresh",
         "/api/v1/auth/forgot-password",
         "/api/v1/auth/reset-password",
-        "/api/v1/auth/google",
+    }
+    EXEMPT_PREFIXES = (
+        "/api/v1/auth/google/",
     )
 
     async def dispatch(self, request: Request, call_next):
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
             path = request.url.path
-            if not path.startswith(self.EXEMPT_PREFIXES):
+            is_exempt = path in self.EXEMPT_PATHS or path.startswith(self.EXEMPT_PREFIXES)
+            if not is_exempt:
                 csrf_cookie = request.cookies.get(settings.CSRF_COOKIE_NAME)
                 if csrf_cookie:
                     csrf_header = request.headers.get(settings.CSRF_HEADER_NAME)
