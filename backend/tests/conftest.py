@@ -28,21 +28,25 @@ from app.core.config import settings
 
 @pytest.fixture(scope="function")
 def test_engine():
-    from app.core.config import settings
-    
+    test_db_url = os.environ.get("TEST_DATABASE_URL", "sqlite:///./test.db")
+
     engine = create_engine(
-        settings.DATABASE_URL,
-        echo=False  # Set to True for SQL debugging
+        test_db_url,
+        echo=False,
+        connect_args={"check_same_thread": False} if "sqlite" in test_db_url else {},
     )
-    
-    # Create all tables
+
     Base.metadata.create_all(bind=engine)
-    
+
     yield engine
-    
-    # Cleanup
-    Base.metadata.drop_all(bind=engine)
+
     engine.dispose()
+    if "sqlite" in test_db_url:
+        import os as _os
+        try:
+            _os.remove("./test.db")
+        except FileNotFoundError:
+            pass
 
 
 @pytest.fixture(scope="function")
