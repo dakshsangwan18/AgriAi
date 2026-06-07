@@ -75,7 +75,7 @@ class EmailService:
             if text_content:
                 message.add_content(Content("text/plain", text_content))
             sg = SendGridAPIClient(self.sendgrid_api_key)
-            response = sg.send(message)
+            response = await asyncio.to_thread(sg.send, message)
             if response.status_code in [200, 201, 202]:
                 logger.info(f"[OK] Email sent to {to_email} via SendGrid")
                 return True
