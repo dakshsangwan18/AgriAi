@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # Import your models and database
 from app.database import Base
 from app.models import user, price_data, prediction_history, agent_analysis, refresh_token
+from app.models import notification, price_alert, user_crop, audit_log
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides
