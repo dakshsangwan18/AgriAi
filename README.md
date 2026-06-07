@@ -20,12 +20,16 @@ API docs at `http://localhost:8000/docs`.
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate   # macOS/Linux
+# .venv\Scripts\activate    # Windows
 pip install -r requirements.txt
-cp .env.example .env          # fill in your keys
+cp .env.example .env        # fill in your keys
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
+
+Backend runs at `http://localhost:8000`, docs at `http://localhost:8000/docs`.
 
 **Frontend** (Node.js 20+)
 
@@ -35,6 +39,8 @@ cp .env.example .env
 npm install
 npm run dev
 ```
+
+Frontend runs at `http://localhost:5173`.
 
 ## Configuration
 
@@ -61,8 +67,9 @@ cd frontend && npm test
 ### Create Superuser
 
 ```bash
+cd backend
 SUPERUSER_EMAIL=admin@example.com SUPERUSER_PASSWORD=strong-password \
-  python backend/scripts/create_superuser.py
+  python scripts/create_superuser.py
 ```
 
 ### Health Check
