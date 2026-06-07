@@ -48,3 +48,4 @@ backend/.env.staging
 backend/.env.production
 frontend/.env.local
 frontend/.env.*.local
+backend/coverage.xml
