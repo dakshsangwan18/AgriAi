@@ -41,6 +41,9 @@ else:
             "Database connection opened",
             extra={"pool_size": engine.pool.size()}
         )
+        cursor = dbapi_conn.cursor()
+        cursor.execute("SET statement_timeout = 30000")
+        cursor.close()
     
     @event.listens_for(engine, "checkout")
     def receive_checkout(dbapi_conn, connection_record, connection_proxy):
@@ -51,13 +54,6 @@ else:
                 "overflow": engine.pool.overflow()
             }
         )
-    
-    # Set PostgreSQL-specific parameters
-    @event.listens_for(engine, "connect")
-    def set_postgres_params(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("SET statement_timeout = 30000")  # 30 second query timeout
-        cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
