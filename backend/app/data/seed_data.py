@@ -89,48 +89,39 @@ def generate_realistic_price_data():
             
             for mandi in mandis:
                 current_date = start_date
-            
-            while current_date <= end_date:
-                # Calculate days from start for trend
-                days_from_start = (current_date - start_date).days
-                
-                # Base price with yearly trend
-                trend_factor = 1 + (config["trend"] * days_from_start / 36500)
-                base_price = config["base_price"] * trend_factor
-                
-                # Seasonal variation
-                day_of_year = current_date.timetuple().tm_yday
-                seasonal_factor = 1 + (config["seasonality_factor"] - 1) * np.sin(2 * np.pi * day_of_year / 365)
-                
-                # Random daily variation
-                daily_variation = random.uniform(-config["variance"]/2, config["variance"]/2)
-                
-                # Calculate modal price
-                modal_price = base_price * seasonal_factor + daily_variation
-                modal_price = max(modal_price, config["base_price"] * 0.5)
-                
-                # Min and max prices
-                min_price = modal_price * random.uniform(0.90, 0.95)
-                max_price = modal_price * random.uniform(1.05, 1.10)
-                
-                # Create price record
-              # Create price record
-                price_record = PriceData(
-                    crop=crop,
-                    mandi=mandi["name"],
-                    state=mandi["state"],
-                    date=current_date.date(),
-                    modal_price=float(round(modal_price, 2)),
-                    min_price=float(round(min_price, 2)),
-                    max_price=float(round(max_price, 2)),
-                    variety="Standard"
-                )
-                
-                db.add(price_record)
-                total_records += 1
-                
-                # Move to next day
-                current_date += timedelta(days=1)
+
+                while current_date <= end_date:
+                    days_from_start = (current_date - start_date).days
+
+                    trend_factor = 1 + (config["trend"] * days_from_start / 36500)
+                    base_price = config["base_price"] * trend_factor
+
+                    day_of_year = current_date.timetuple().tm_yday
+                    seasonal_factor = 1 + (config["seasonality_factor"] - 1) * np.sin(2 * np.pi * day_of_year / 365)
+
+                    daily_variation = random.uniform(-config["variance"]/2, config["variance"]/2)
+
+                    modal_price = base_price * seasonal_factor + daily_variation
+                    modal_price = max(modal_price, config["base_price"] * 0.5)
+
+                    min_price = modal_price * random.uniform(0.90, 0.95)
+                    max_price = modal_price * random.uniform(1.05, 1.10)
+
+                    price_record = PriceData(
+                        crop=crop,
+                        mandi=mandi["name"],
+                        state=mandi["state"],
+                        date=current_date.date(),
+                        modal_price=float(round(modal_price, 2)),
+                        min_price=float(round(min_price, 2)),
+                        max_price=float(round(max_price, 2)),
+                        variety="Standard"
+                    )
+
+                    db.add(price_record)
+                    total_records += 1
+
+                    current_date += timedelta(days=1)
             
             # Flush after each crop (keeps session active)
             db.flush()
