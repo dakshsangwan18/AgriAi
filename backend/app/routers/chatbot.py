@@ -5,6 +5,7 @@ from typing import List, Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.core.logging_config import logger
+import asyncio
 
 router = APIRouter()
 chatbot_service = get_chatbot_service()
@@ -32,14 +33,15 @@ async def ask_question(request: Request, chat_request: ChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     try:
-        # Get response from chatbot
         if chat_request.history and len(chat_request.history) > 0:
-            # Use history for context
             history_list = [{"role": msg.role, "content": msg.content} for msg in chat_request.history]
-            response = chatbot_service.get_response_with_history(chat_request.message, history_list)
+            response = await asyncio.to_thread(
+                chatbot_service.get_response_with_history, chat_request.message, history_list
+            )
         else:
-            # Simple response without history
-            response = chatbot_service.get_response(chat_request.message)
+            response = await asyncio.to_thread(
+                chatbot_service.get_response, chat_request.message
+            )
 
         return {
             "response": response,
