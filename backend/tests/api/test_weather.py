@@ -7,42 +7,43 @@ from unittest.mock import patch
 
 class TestWeatherEndpoints:
     
-    @patch('app.routers.weather.weather_service')
-    def test_get_forecast_success(self, mock_service, client: TestClient, auth_headers):
-        mock_service.get_forecast.return_value = {
-            "location": {"lat": 28.6, "lon": 77.2},
-            "current": {"temp": 25, "condition": "Clear"},
-            "forecast": []
+    @patch('app.services.weather_service.WeatherService.get_forecast')
+    def test_get_forecast_success(self, mock_forecast, client: TestClient, auth_headers):
+        mock_forecast.return_value = {
+            "city": "Delhi",
+            "forecasts": [
+                {"datetime": "2025-01-01 12:00:00", "temperature": 25, "description": "Clear", "rain_probability": 10, "humidity": 50}
+            ]
         }
         
         response = client.get(
-            "/api/weather/forecast?lat=28.6&lon=77.2",
+            "/api/weather/forecast?city=Delhi",
             headers=auth_headers
         )
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "current" in data
+        assert "forecasts" in data
     
     def test_get_forecast_missing_params(self, client: TestClient, auth_headers):
         response = client.get("/api/weather/forecast", headers=auth_headers)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
-    @patch('app.routers.weather.weather_service')
-    def test_get_weather_alerts(self, mock_service, client: TestClient, auth_headers):
-        mock_service.get_alerts.return_value = {
-            "alerts": [
-                {"type": "rainfall", "severity": "moderate"}
-            ]
+    @patch('app.services.weather_service.WeatherService.get_current_weather')
+    def test_get_weather_alerts(self, mock_weather, client: TestClient, auth_headers):
+        mock_weather.return_value = {
+            "city": "Delhi",
+            "temperature": 25,
+            "feels_like": 24,
+            "humidity": 50,
+            "description": "Clear",
+            "wind_speed": 5,
+            "timestamp": "2025-01-01T12:00:00"
         }
         
         response = client.get(
-            "/api/weather/alerts?lat=28.6&lon=77.2",
+            "/api/weather/alerts?city=Delhi",
             headers=auth_headers
         )
         
-        # Should handle gracefully even if endpoint doesn't exist
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_404_NOT_FOUND
-        ]
+        assert response.status_code == status.HTTP_200_OK
