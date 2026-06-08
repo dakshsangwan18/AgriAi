@@ -39,8 +39,8 @@ class TestHealthEndpoints:
         data = response.json()
         assert data["status"] == "alive"
     
-    def test_db_pool_status(self, client: TestClient):
-        response = client.get("/api/health/db-pool")
+    def test_db_pool_status(self, client: TestClient, admin_headers):
+        response = client.get("/api/health/db-pool", headers=admin_headers)
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
