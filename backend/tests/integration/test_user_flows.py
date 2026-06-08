@@ -34,7 +34,9 @@ class TestCompleteAuthFlow:
         token_data = login_response.json()
         assert "access_token" in token_data
         token = token_data["access_token"]
-        
+
+        csrf_token = login_response.cookies.get("csrf_token", "")
+
         # Step 3: Access protected endpoint
         profile_response = client.get(
             "/api/v1/auth/me",
@@ -45,10 +47,13 @@ class TestCompleteAuthFlow:
         assert profile_data["email"] == "flowtest@example.com"
         assert profile_data["full_name"] == "Flow Test User"
         
-        # Step 4: Update profile
+        # Step 4: Update profile (requires CSRF token)
         update_response = client.put(
             "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-CSRF-Token": csrf_token,
+            },
             json={
                 "full_name": "Updated Flow User",
                 "location": "Updated City",
