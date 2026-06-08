@@ -65,7 +65,7 @@ async def database_pool_health(admin: User = Depends(verify_admin)):
 
 
 @router.get("/health/ready")
-async def readiness_check(admin: User = Depends(verify_admin)):
+async def readiness_check():
     
     try:
         # Check if we can get pool status (implies DB is accessible)
