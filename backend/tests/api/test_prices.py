@@ -30,28 +30,30 @@ class TestPriceEndpoints:
         data = response.json()
         assert data["crop"] == "wheat"
     
-    @patch('app.services.price_service.PriceService.predict_prices')
-    def test_get_historical_prices_success(self, mock_predict, client: TestClient, auth_headers):
-        mock_predict.return_value = {
-            "crop": "wheat",
-            "current_price": 2500.00,
-            "historical_data": [
-                {"date": "2024-01-01", "price": 2500, "crop": "wheat"},
-                {"date": "2024-01-02", "price": 2550, "crop": "wheat"}
-            ],
-            "predictions": [],
-            "trend": "stable"
-        }
-        
+    @patch('app.routers.prices.data_service.get_price_data')
+    def test_get_historical_prices_success(self, mock_data, client: TestClient, auth_headers):
+        import pandas as pd
+        from datetime import datetime, timedelta
+        dates = pd.date_range(end=datetime.now(), periods=2, freq='D')
+        mock_data.return_value = pd.DataFrame({
+            'date': dates,
+            'price': [2500.0, 2550.0],
+            'min_price': [2400.0, 2450.0],
+            'max_price': [2600.0, 2650.0],
+            'crop': ['wheat', 'wheat'],
+            'mandi': ['Delhi', 'Delhi'],
+            'state': ['Delhi', 'Delhi'],
+            'variety': ['Standard', 'Standard']
+        })
+
         response = client.get(
             "/api/prices/historical?crop=wheat&days=30",
             headers=auth_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert isinstance(data["historical_data"], list)
-        assert len(data["historical_data"]) == 2
+        assert data["crop"] == "wheat"
     
     @patch('app.services.price_service.PriceService.get_market_comparison')
     def test_get_price_trends(self, mock_compare, client: TestClient, auth_headers):

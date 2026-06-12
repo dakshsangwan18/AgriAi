@@ -77,7 +77,10 @@ class EnvironmentValidator:
                 return False
             
             # Check for default/weak keys
-            weak_patterns = ['your-secret', 'change-me', 'example', 'test', 'default']
+            weak_patterns = [
+                'your-secret', 'change-me', 'replace', 'example', 'test-key',
+                'default', 'secret-key', 'my-secret', 'password', '123456'
+            ]
             if any(pattern in value.lower() for pattern in weak_patterns):
                 self.errors.append(
                     f"[ERROR] {var_name} appears to be a default/weak key\n"
@@ -99,9 +102,9 @@ class EnvironmentValidator:
     
     def validate_database_url(self):
         db_url = os.getenv('DATABASE_URL')
-        if db_url and not db_url.startswith('postgresql://'):
+        if db_url and not db_url.startswith('postgresql://') and not db_url.startswith('sqlite:///'):
             self.errors.append(
-                "[ERROR] DATABASE_URL must start with 'postgresql://'\n"
+                "[ERROR] DATABASE_URL must start with 'postgresql://' or 'sqlite:///'\n"
                 f"   Current: {db_url[:30]}..."
             )
     
