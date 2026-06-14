@@ -4,6 +4,16 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
     plugins: [react(),tailwindcss()],
+    server: {
+        // Proxy API requests to the backend during local development so that
+        // cookie-based auth (SameSite=Lax) works from the Vite dev origin.
+        proxy: {
+            '/api': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+            },
+        },
+    },
     build: {
         rollupOptions: {
             output: {
