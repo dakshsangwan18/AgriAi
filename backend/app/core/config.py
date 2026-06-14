@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # OAuth - Google Login
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
-    GOOGLE_REDIRECT_URI: Optional[str] = None
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     
     # CORS - Allow multiple origins for development
     FRONTEND_URL: str = "http://localhost"  # Docker deployment
@@ -124,8 +124,6 @@ class Settings(BaseSettings):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if not self.GOOGLE_REDIRECT_URI:
-            self.GOOGLE_REDIRECT_URI = f"{self.FRONTEND_URL.rstrip('/')}/api/v1/auth/google/callback"
         self._validate_secret_key()
 
     def docs_enabled(self) -> bool:

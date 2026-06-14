@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { apiClient } from "../services/api";
@@ -11,17 +11,17 @@ export const GoogleCallbackPage: React.FC = () => {
     const error = searchParams.get("error");
 
     if (error) {
-      navigate("/login?error=google_auth_failed");
+      navigate("/login?error=google_auth_failed", { replace: true });
       return;
     }
 
     apiClient
       .get("/v1/auth/me")
       .then(() => {
-        window.location.href = "/app";
+        navigate("/dashboard", { replace: true });
       })
-      .catch(() => navigate("/login"));
-  }, [searchParams, navigate]);
+      .catch(() => navigate("/login", { replace: true }));
+  }, []);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-green-50 via-blue-50 to-emerald-50 flex items-center justify-center">
