@@ -560,7 +560,21 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         response = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/google/callback")
         _set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
-        logger.info(f"[OAUTH] Successfully authenticated user {email}, redirecting to frontend")
+        # OAuth callbacks must never be cached; a cached 304 would skip the
+        # code exchange and leave the user without auth cookies.
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+        logger.info(
+            f"[OAUTH] Successfully authenticated user {email}, redirecting to frontend",
+            extra={
+                "frontend_url": settings.FRONTEND_URL,
+                "cookie_secure": settings.cookie_secure(),
+                "cookie_samesite": settings.cookie_samesite(),
+                "cookie_domain": settings.COOKIE_DOMAIN,
+            }
+        )
         return response
         
     except Exception as e:
