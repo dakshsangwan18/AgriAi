@@ -32,28 +32,32 @@ class DataIntegrationService:
         }
         
     def fetch_real_api_data(self, commodity: str = None, limit: int = 1000, offset: int = 0) -> Optional[Dict]:
+        if not self.data_gov_api_key:
+            logger.warning("[WARNING] DATA_GOV_IN_API_KEY is not configured; skipping real API fetch")
+            return None
+
         try:
             # Map crop name to API commodity name (case-sensitive)
             api_commodity = None
             if commodity:
                 api_commodity = self.crop_to_commodity.get(commodity.lower(), commodity)
-            
+
             logger.info(f"Attempting to fetch data from data.gov.in API (crop={commodity}, api_commodity={api_commodity}, limit={limit}, offset={offset})")
-            
+
             url = f"{self.base_url}/{self.resource_id}"
-            
+
             params = {
                 "api-key": self.data_gov_api_key,
                 "format": "json",
                 "limit": limit,
                 "offset": offset
             }
-            
+
             # Add commodity filter if specified
             if api_commodity:
                 params["filters[commodity]"] = api_commodity
-            
-            response = requests.get(url, params=params, timeout=30)
+
+            response = requests.get(url, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()

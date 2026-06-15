@@ -24,10 +24,15 @@ class YieldService:
     }
     
     def __init__(self):
-      self.label_encoders = {}
-      self.model = self._train_model()
-      
-    
+        self.label_encoders = {}
+        self._model = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            self._model = self._train_model()
+        return self._model
+
     def _train_model(self):
         # Generate synthetic training data
         np.random.seed(42)
