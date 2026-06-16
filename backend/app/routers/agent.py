@@ -162,9 +162,7 @@ async def trigger_monitoring(
 
 
 @router.get("/health")
-async def health_check(
-    admin: Annotated[User, Depends(verify_admin)],
-):
+async def health_check():
     return {
         "agent": "healthy",
         "scheduler": (
