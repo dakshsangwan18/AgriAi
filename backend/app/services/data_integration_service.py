@@ -159,68 +159,66 @@ class DataIntegrationService:
         db_data = self._get_from_database(crop, days)
         if db_data is not None and not db_data.empty:
             data_age_days = (datetime.now().date() - db_data['date'].max().date()).days
-            
+
             if data_age_days < 1:  # Data is fresh (less than 1 day old)
                 logger.info(f"[OK] Using cached data from database (age: {data_age_days} days)")
                 return db_data
-        
-       # Try real API first (unless forced to use synthetic)
-        if not force_synthetic:
+
+        # Try real API first (unless forced to use synthetic)
+        if not force_synthetic and self.data_gov_api_key:
             # Use the commodity mapping from __init__
             api_commodity = self.crop_to_commodity.get(crop.lower(), crop.title())
-            
+
             api_data = self.fetch_real_api_data(commodity=api_commodity, limit=5000)
-            
+
             if api_data is not None:
                 # Process and store API data
                 processed_data = self._process_api_data(api_data, crop)
             else:
                 processed_data = None
-            
+
             if processed_data is not None and not processed_data.empty:
-                    self._store_in_database(processed_data)
-                    logger.info(f"[OK] Got {len(processed_data)} records from REAL API")
-                    
-                    # Check if we need historical backfill (API only provides today's data)
-                    unique_dates = processed_data['date'].dt.date.nunique()
-                    
-                    if unique_dates < days and unique_dates <= 5:  # Need historical data
-                        logger.info(f"[WARNING] API provided only {unique_dates} unique dates, need {days} days")
-                        
-                        # Get average current price from real data
-                        current_avg_price = processed_data['price'].mean()
-                        
-                        # Generate historical backfill based on real current price
-                        historical_data = self.generate_hybrid_historical_data(
-                            crop, 
-                            days=days, 
-                            current_price=current_avg_price
-                        )
-                        
-                        # Replace today's synthetic data with real API data
-                        today = datetime.now().date()
-                        historical_data = historical_data[historical_data['date'].dt.date < today]
-                        
-                        # Combine: historical synthetic + today's real
-                        combined_data = pd.concat([historical_data, processed_data], ignore_index=True)
-                        combined_data = combined_data.sort_values('date').tail(days)
-                        
-                        # [OK] Store hybrid data in database for consistency
-                        self._store_in_database(historical_data)
-                        
-                        logger.info(f"[OK] Using HYBRID data: {len(historical_data)} historical + {len(processed_data)} real (today)")
-                        return combined_data
-                    else:
-                        # Have enough historical data from API
-                        processed_data = processed_data.sort_values('date', ascending=False).head(days)
-                        logger.info(f"[OK] Using REAL API data: {len(processed_data)} records")
-                        return processed_data
-        
-        # Fallback to pure synthetic (no real data available)
-        logger.warning("[WARNING] No real API data available, using pure synthetic fallback")
-        synthetic_data = self.generate_hybrid_historical_data(crop, days)
-        
-        return synthetic_data
+                self._store_in_database(processed_data)
+                logger.info(f"[OK] Got {len(processed_data)} records from REAL API")
+
+                # Check if we need historical backfill (API only provides today's data)
+                unique_dates = processed_data['date'].dt.date.nunique()
+
+                if unique_dates < days and unique_dates <= 5:  # Need historical data
+                    logger.info(f"[WARNING] API provided only {unique_dates} unique dates, need {days} days")
+
+                    # Get average current price from real data
+                    current_avg_price = processed_data['price'].mean()
+
+                    # Generate historical backfill based on real current price
+                    historical_data = self.generate_hybrid_historical_data(
+                        crop,
+                        days=days,
+                        current_price=current_avg_price
+                    )
+
+                    # Replace today's synthetic data with real API data
+                    today = datetime.now().date()
+                    historical_data = historical_data[historical_data['date'].dt.date < today]
+
+                    # Combine: historical synthetic + today's real
+                    combined_data = pd.concat([historical_data, processed_data], ignore_index=True)
+                    combined_data = combined_data.sort_values('date').tail(days)
+
+                    # [OK] Store hybrid data in database for consistency
+                    self._store_in_database(historical_data)
+
+                    logger.info(f"[OK] Using HYBRID data: {len(historical_data)} historical + {len(processed_data)} real (today)")
+                    return combined_data
+                else:
+                    # Have enough historical data from API
+                    processed_data = processed_data.sort_values('date', ascending=False).head(days)
+                    logger.info(f"[OK] Using REAL API data: {len(processed_data)} records")
+                    return processed_data
+
+        # No real data available and API key missing/unusable
+        logger.warning("[WARNING] No real API data available and DATA_GOV_IN_API_KEY is not configured")
+        return pd.DataFrame()
     
     def _get_from_database(self, crop: str, days: int) -> Optional[pd.DataFrame]:
         with get_db_session_no_commit() as db:
