@@ -109,11 +109,11 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable):
         # Skip validation for OAuth callbacks (Google sends encoded tokens)
-        if "/api/auth/google/callback" in request.url.path:
+        if "/api/v1/auth/google/callback" in request.url.path:
             return await call_next(request)
-        
+
         # Skip validation for all auth endpoints (they handle their own validation)
-        if "/api/auth/" in request.url.path or "/api/v1/auth/" in request.url.path:
+        if "/api/v1/auth/" in request.url.path:
             return await call_next(request)
         
         # Skip validation for GET requests without query params
