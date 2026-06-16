@@ -95,8 +95,8 @@ class SmartCropAgent:
             # Convert MarketSignal dataclasses to dicts for JSON serialization
             market_signals = [
                 {
-                    'signal_type': s.data_source,
-                    'signal': s.signal_type,
+                    'signal_type': s.signal_type,
+                    'signal': s.data_source,
                     'strength': s.strength,
                     'explanation': s.reason
                 }
