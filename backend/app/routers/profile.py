@@ -10,7 +10,7 @@ from app.api.v1.endpoints.auth import get_current_user
 from pydantic import BaseModel, Field
 
 
-router = APIRouter(prefix="/profile", tags=["profile"])
+router = APIRouter(tags=["profile"])
 
 
 # Schemas
