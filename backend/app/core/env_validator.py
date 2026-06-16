@@ -31,11 +31,11 @@ class EnvironmentValidator:
         },
         'OPENWEATHER_API_KEY': {
             'description': 'OpenWeather API for real weather data',
-            'fallback': 'Will use mock weather data'
+            'fallback': 'Weather endpoints will return an error'
         },
         'DATA_GOV_IN_API_KEY': {
             'description': 'Data.gov.in API for real market prices',
-            'fallback': 'Will use synthetic price data'
+            'fallback': 'Price endpoints will return an error'
         },
         'SENDGRID_API_KEY': {
             'description': 'SendGrid for email notifications',
