@@ -14,7 +14,7 @@ from app.services.agent_service import smart_agent
 from app.services.scheduler_service import scheduler_service
 from app.core.dependencies import verify_admin
 
-router = APIRouter(prefix="/agent", tags=["Agent"])
+router = APIRouter(tags=["Agent"])
 
 
 class AnalysisRequest(BaseModel):
@@ -85,7 +85,7 @@ async def analyze_crop(
 
 @router.get("/status")
 async def get_agent_status(
-    admin: Annotated[User, Depends(verify_admin)],
+    current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db),
 ):
     try:
