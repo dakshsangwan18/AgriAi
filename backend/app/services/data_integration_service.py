@@ -57,8 +57,8 @@ class DataIntegrationService:
             if api_commodity:
                 params["filters[commodity]"] = api_commodity
 
-            response = requests.get(url, params=params, timeout=10)
-            
+            response = requests.get(url, params=params, timeout=30)
+
             if response.status_code == 200:
                 data = response.json()
                 
@@ -169,7 +169,7 @@ class DataIntegrationService:
             # Use the commodity mapping from __init__
             api_commodity = self.crop_to_commodity.get(crop.lower(), crop.title())
 
-            api_data = self.fetch_real_api_data(commodity=api_commodity, limit=5000)
+            api_data = self.fetch_real_api_data(commodity=api_commodity, limit=1000)
 
             if api_data is not None:
                 # Process and store API data
@@ -216,8 +216,11 @@ class DataIntegrationService:
                     logger.info(f"[OK] Using REAL API data: {len(processed_data)} records")
                     return processed_data
 
-        # No real data available and API key missing/unusable
-        logger.warning("[WARNING] No real API data available and DATA_GOV_IN_API_KEY is not configured")
+        # No real data available (key missing, API timeout, or empty response)
+        if not self.data_gov_api_key:
+            logger.warning("[WARNING] No real API data available: DATA_GOV_IN_API_KEY is not configured")
+        else:
+            logger.warning("[WARNING] No real API data available: data.gov.in request failed, timed out, or returned empty data")
         return pd.DataFrame()
     
     def _get_from_database(self, crop: str, days: int) -> Optional[pd.DataFrame]:
