@@ -166,55 +166,43 @@ class DataIntegrationService:
 
         # Try real API first (unless forced to use synthetic)
         if not force_synthetic and self.data_gov_api_key:
-            # Use the commodity mapping from __init__
             api_commodity = self.crop_to_commodity.get(crop.lower(), crop.title())
 
-            api_data = self.fetch_real_api_data(commodity=api_commodity, limit=1000)
+            # Fetch multiple pages of real data to maximize historical coverage
+            # without timing out on a single huge request.
+            page_size = 500
+            max_pages = 10
+            all_records = []
+            for page in range(max_pages):
+                offset = page * page_size
+                api_data = self.fetch_real_api_data(
+                    commodity=api_commodity, limit=page_size, offset=offset
+                )
+                if api_data is None or not api_data.get("records"):
+                    break
 
-            if api_data is not None:
-                # Process and store API data
-                processed_data = self._process_api_data(api_data, crop)
+                records = api_data["records"]
+                all_records.extend(records)
+
+                # Stop if the last page was not full (no more data available)
+                if len(records) < page_size:
+                    break
+
+            if all_records:
+                api_response = {"records": all_records}
+                processed_data = self._process_api_data(api_response, crop)
             else:
                 processed_data = None
 
             if processed_data is not None and not processed_data.empty:
                 self._store_in_database(processed_data)
-                logger.info(f"[OK] Got {len(processed_data)} records from REAL API")
-
-                # Check if we need historical backfill (API only provides today's data)
                 unique_dates = processed_data['date'].dt.date.nunique()
-
-                if unique_dates < days and unique_dates <= 5:  # Need historical data
-                    logger.info(f"[WARNING] API provided only {unique_dates} unique dates, need {days} days")
-
-                    # Get average current price from real data
-                    current_avg_price = processed_data['price'].mean()
-
-                    # Generate historical backfill based on real current price
-                    historical_data = self.generate_hybrid_historical_data(
-                        crop,
-                        days=days,
-                        current_price=current_avg_price
-                    )
-
-                    # Replace today's synthetic data with real API data
-                    today = datetime.now().date()
-                    historical_data = historical_data[historical_data['date'].dt.date < today]
-
-                    # Combine: historical synthetic + today's real
-                    combined_data = pd.concat([historical_data, processed_data], ignore_index=True)
-                    combined_data = combined_data.sort_values('date').tail(days)
-
-                    # [OK] Store hybrid data in database for consistency
-                    self._store_in_database(historical_data)
-
-                    logger.info(f"[OK] Using HYBRID data: {len(historical_data)} historical + {len(processed_data)} real (today)")
-                    return combined_data
-                else:
-                    # Have enough historical data from API
-                    processed_data = processed_data.sort_values('date', ascending=False).head(days)
-                    logger.info(f"[OK] Using REAL API data: {len(processed_data)} records")
-                    return processed_data
+                processed_data = processed_data.sort_values('date', ascending=False).head(days)
+                logger.info(
+                    f"[OK] Using REAL API data: {len(processed_data)} records "
+                    f"across {unique_dates} unique dates"
+                )
+                return processed_data
 
         # No real data available (key missing, API timeout, or empty response)
         if not self.data_gov_api_key:
